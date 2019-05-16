@@ -17,6 +17,8 @@ app.use(function(req, res, next) {
 });
 
 
+app.get('/', (req, res) => res.send('Hello World!'))
+
 app.post('/', (req, res) => {
 
   // let toBsaved = req.query;

@@ -4,6 +4,7 @@
   "description": "Killing Servers",
   "main": "index.js",
   "scripts": {
+    "start":"node index.js",
     "test": "nodemon index.js"
   },
   "author": "Arnav Singh",
