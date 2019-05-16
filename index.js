@@ -9,7 +9,7 @@ app.use(bodyParser.urlencoded({ extended: false }))
 // parse application/json
 app.use(bodyParser.json())
  
-var port = 8080
+var port = process.env.PORT || 8080
 
 app.use(function(req, res, next) {
   res.header("Access-Control-Allow-Origin", "*");
