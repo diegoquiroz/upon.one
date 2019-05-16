@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+	<div id="app"></div>
+	
+
+</body>
+
+<script src="https://unpkg.com/peerjs@1.0.0/dist/peerjs.min.js"></script>
+<script type="text/javascript">
+
+
+
+var server = {
+	host:function(config) {
+
+			if(config.html == undefined){
+				config.html = document.body 
+				config.style = document.getElementsByTagName('style');
+				config.js = document.getElementsByTagName('script');
+			}
+
+			var xhttp = new XMLHttpRequest();
+			xhttp.onreadystatechange = function() {
+
+			   if (this.readyState == 4 && this.status == 200) {
+			      console.log(this.responseText);
+			    }else{
+			    	console.log('error',this)
+			    }
+
+			};
+
+			peer = new Peer({
+				host: 'localhost',
+				port: 3000,
+				path: '/peerjs'
+			})
+
+			//peer
+			config.peerid = peer._id
+			// console.log(peer._id)
+
+			xhttp.open("POST", "localhost:3000", true);
+			xhttp.send("data="+config.name+"&peerid="+peer._id); 
+
+	}
+}
+
+    function _(id){
+        return document.getElementById(id)
+    }
+
+
+server.host({name:'boon'})
+
+// server.host({content:_('app'), name:'boon'})
+
+
+
+</script>
+
+</html>
