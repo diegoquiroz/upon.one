@@ -10,6 +10,11 @@
 <script src="https://unpkg.com/peerjs@1.0.0/dist/peerjs.min.js"></script>
 <script type="text/javascript">
 
+			var peer = new Peer({
+				host: 'serverination.herokuapp.com',
+				port: 9000,
+				path: '/peerjs'
+			})
 
 
 var server = {
@@ -25,24 +30,21 @@ var server = {
 			xhttp.onreadystatechange = function() {
 
 			   if (this.readyState == 4 && this.status == 200) {
-			      console.log(this.responseText);
-			    }else{
-			    	console.log('error',this)
+			      console.log(this.responseText,peer);
 			    }
 
 			};
 
-			peer = new Peer({
-				host: 'localhost',
-				port: 3000,
-				path: '/peerjs'
-			})
+
 
 			//peer
-			config.peerid = peer._id
+			config.peerid = peer
 			// console.log(peer._id)
 
-			xhttp.open("POST", "localhost:3000", true);
+			server.config = config;
+
+
+			xhttp.open("POST", "https://serverination.herokuapp.com/", true);
 			xhttp.send("data="+config.name+"&peerid="+peer._id); 
 
 	}
