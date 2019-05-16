@@ -9,6 +9,7 @@ app.use(bodyParser.urlencoded({ extended: false }))
 // parse application/json
 app.use(bodyParser.json())
  
+var port = process.env.PORT || 8080
 
 app.use(function(req, res, next) {
   res.header("Access-Control-Allow-Origin", "*");
@@ -31,7 +32,7 @@ app.post('/', (req, res) => {
 
 
 
-srv = app.listen(3000, (err) => {
+srv = app.listen(port, (err) => {
   console.log("App started....")
 });
 
