@@ -1,5 +1,4 @@
 let mongoose = require('mongoose')
-let validator = require('validator')
 
 mongoose.connect('mongodb+srv://itsarnav:00000000@cluster0-zijxk.mongodb.net/test?retryWrites=true', {useNewUrlParser: true})
 
