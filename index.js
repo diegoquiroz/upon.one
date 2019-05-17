@@ -41,12 +41,12 @@ app.get('/:id/:data', (req, res) => {
 
 app.post('/', (req, res) => {
 
-  var newapp = new app_set{
+  var newapp = new app_set({
     name:req.body.name,
     password:req.body.password,
     version:0,
     seed:req.body.peerid
-  }
+  })
 
   newapp.save(error=>{
     if (error) throw err;
