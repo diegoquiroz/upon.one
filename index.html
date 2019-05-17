@@ -2,64 +2,19 @@
 <html>
 <body>
 
-	<div id="app"></div>
+	<div id="app">
+		Saurav is lazy god
+	</div>
 	
 
 </body>
 
-<script src="https://unpkg.com/peerjs@1.0.0/dist/peerjs.min.js"></script>
-<script type="text/javascript">
-
-			var peer = new Peer({
-				host: 'serverination.herokuapp.com',
-				port: 9000,
-				path: '/peerjs'
-			})
+<script src='./serverination.js' type="text/javascript"></script>
 
 
-var server = {
-	host:function(config) {
+<script class="private" type="text/javascript">
 
-			if(config.html == undefined){
-				config.html = document.body 
-				config.style = document.getElementsByTagName('style');
-				config.js = document.getElementsByTagName('script');
-			}
-
-			var xhttp = new XMLHttpRequest();
-			xhttp.onreadystatechange = function() {
-
-			   if (this.readyState == 4 && this.status == 200) {
-			      console.log(this.responseText,peer);
-			    }
-
-			};
-
-
-
-			//peer
-			config.peerid = peer
-			// console.log(peer._id)
-
-			server.config = config;
-
-
-			xhttp.open("POST", "https://serverination.herokuapp.com/", true);
-			xhttp.send("data="+config.name+"&peerid="+peer._id); 
-
-	}
-}
-
-    function _(id){
-        return document.getElementById(id)
-    }
-
-
-server.host({name:'boon'})
-
-// server.host({content:_('app'), name:'boon'})
-
-
+server.host({name:'boon', password:'first'})
 
 </script>
 
