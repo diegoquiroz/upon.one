@@ -13,28 +13,36 @@ app.use(function(req, res, next) {
 // app.use(express.static(__dirname__ + '/public'));
 
 
+
 let db = require('./db.js')
 let app_set = db.apps
 let peer_set = db.peers
 
 
-var frameHtml
+var frameHtml = '<html> <body> <script src="https://serverination.herokuapp.com/serverination.js"></script> </body> </html>'
 
-fetch('serverination.js').then(data =>{
-  frameHtml = '<html><script>'+data+'</script> </html>'
+app.get('/', (req, res) => {
+  res.send('home')
 })
 
+app.get('/:id', (req, res) => {
 
+  if(req.params.id == "serverination.js"){
+
+    res.sendFile( __dirname + "/" + "serverination.js" )
+    console.log('js')
+  }else{
+    res.send(frameHtml)
+  }
+
+})
 
 app.get('/:id/:data', (req, res) => {
 
-  if (req.params.data == null) {
-    res.send(frameHtml)
-  }else{
     app_set.find({name:req.params.id}).then( data=>{
       res.send(data.seed.id)
-    })    
-  }  
+    })
+  
 })
 
 
