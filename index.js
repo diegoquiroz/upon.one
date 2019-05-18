@@ -5,9 +5,10 @@ var app = express()
 app.use(bodyParser.urlencoded({ extended: false }))
 app.use(bodyParser.json())
 var port = process.env.PORT || 8080;
+
 app.use(function(req, res, next) {
   res.header("Access-Control-Allow-Origin", "*");
-  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+  // res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
   next();
 });
 // app.use(express.static(__dirname__ + '/public'));
@@ -28,6 +29,10 @@ app.get('/', (req, res) => {
 app.get('/:id', (req, res) => {
 
   if(req.params.id == "serverination.js"){
+
+    res.set({
+      'Content-Type': 'text/javascript'
+    });
 
     res.sendFile( __dirname + "/" + "serverination.js" )
     console.log('js')
