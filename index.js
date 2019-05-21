@@ -55,8 +55,9 @@ app.get('/:id', (req, res) => {
     );
 
     res.sendFile( __dirname + "/" + "serverination.js" )
-
+    console.log('ser')
   }else{
+    console.log(frameHtml)
     res.send(frameHtml)
   }
 
@@ -75,6 +76,8 @@ function savePeer(pid,appname){
 
 app.get('/:id/:data', (req, res) => {
 
+    console.log('data with index')
+    
     var pid = req.query.pid
     var app_n = req.params.id
     // console.log(pid,'pid')
