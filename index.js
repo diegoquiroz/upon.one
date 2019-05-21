@@ -32,15 +32,17 @@ if(process.env.PORT == undefined){
   runtm.host = 'localhost'
   runtm.port = 8080;
   runtm['type'] = 'testing'
+  runtm.bastard_port = 8080;
 }else{
   runtm.host = 'serverination.herokuapp.com'
   runtm.port = process.env.PORT || 8080;
   runtm['type'] = 'online'
+  runtm.bastard_port = 80;
 }
 
-runtm.port = process.env.PORT || 8080;
+// runtm.port = process.env.PORT || 8080;
 
-var frameHtml = '<html> <body> <script class="hostea" mode="'+runtm['type']+'" job="receive" src="http://'+runtm.host+':'+runtm.port+'/serverination.js"> </script> </body> </html>'
+var frameHtml = '<html> <body> <script class="hostea" mode="'+runtm['type']+'" job="receive" src="http://'+runtm.host+':'+runtm.bastard_port+'/serverination.js"> </script> </body> </html>'
 
 app.get('/', (req, res) => {
   res.send('home')
