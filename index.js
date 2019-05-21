@@ -34,7 +34,7 @@ if(process.env.PORT == undefined){
   runtm['type'] = 'testing'
 }else{
   runtm.host = 'serverination.herokuapp.com'
-  runtm.port = process.env.PORT;
+  runtm.port = 80;
   runtm['type'] = 'online'
 }
 
@@ -77,7 +77,7 @@ function savePeer(pid,appname){
 app.get('/:id/:data', (req, res) => {
 
     console.log('data with index')
-    
+
     var pid = req.query.pid
     var app_n = req.params.id
     // console.log(pid,'pid')
