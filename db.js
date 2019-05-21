@@ -1,6 +1,4 @@
-let mongoose = require('mongoose')
-
-mongoose.connect('mongodb+srv://itsarnav:00000000@cluster0-zijxk.mongodb.net/test?retryWrites=true', {useNewUrlParser: true})
+let mongoose = require('./mongo_config.js')
 
 let appSchema = new mongoose.Schema({
   name:{
@@ -10,20 +8,20 @@ let appSchema = new mongoose.Schema({
   },
   version: String,
   password: String,
-  seed:String
+  seed:String,
+  merkle_tree:String
 
 })
 
 let peerSchema = new mongoose.Schema({
 
-    peerId:String,
+    peerId:{ 
+      type: String,
+      required: true,
+      unique: true,
+    },
     version: String,
-    apps:{
-        type: mongoose.Schema.Types.ObjectId, 
-        ref: 'apps'
-	},
-
-
+    app:String
 
 })
 
