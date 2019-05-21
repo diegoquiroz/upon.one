@@ -399,35 +399,85 @@ function newPeer(callback){
               server.info.port = 80
           }
         },
+
         init:function(config){
+
+            function stripScripts(s) {
+    var div = document.createElement('div');
+    div.innerHTML = s;
+    var scripts = div.getElementsByTagName('script');
+    var i = scripts.length;
+    while (i--) {
+      scripts[i].parentNode.removeChild(scripts[i]);
+    }
+    return div.innerHTML;
+  }
 
           server.sat()
 
           if (config['index'] == undefined) {
 
             var index_file = document.body.cloneNode(true)
-
-            var scriptPrivate = index_file.getElementsByClassName('private')[0]; // find h2 element
-
-            if(scriptPrivate){
-              scriptPrivate.parentNode.removeChild(scriptPrivate);  // remove h2 element
-            }
+            var js_file = {};
+            js_file.loads = []
+            var css_file;
             
             var scriptfiles = index_file.getElementsByTagName('script');
+            
 
-            if (scriptfiles) {
 
               for(index of scriptfiles){
+
+                
                 var src = index.src
-                if ( src.indexOf('serverination.js') !== -1 ) {
-                  index.parentNode.removeChild(index)
-                  // console.log(index)
+                var id_class = '';
+
+                if(index.getAttribute('class')){
+                  id_class = index.getAttribute('class')
                 }
+
+                
+
+                if ( src.indexOf('serverination.js') !== -1 || id_class.indexOf('private') !== -1 ) {
+
+                  console.log('removing')
+                  // index.parentNode.removeChild(index)
+                  
+                }else{
+
+                  console.log(src)
+
+                  if(src){ js_file.loads.push(src) }else{
+
+
+                    js_file.source == undefined? js_file.source = index.innerHTML : js_file.source += index.innerHTML
+
+                
+
+                 }
+                  
+                }
+
               }
 
+            
+
+            var style_tags = document.getElementsByTagName('style')
+
+            for(index of style_tags){
+
+              css_file == undefined? css_file = index.innerHTML : css_file += index.innerHTML
             }
 
-            server.files.index = index_file.innerHTML
+            //refreshing doesn't removes the peer from db
+
+            server.files.index = {}
+            server.files.index.js = {}
+            
+            server.files.index.css = css_file
+
+            server.files.index.js = js_file
+            server.files.index.dom = stripScripts(index_file.innerHTML)
 
             console.log(server.files.index)
             
@@ -478,11 +528,28 @@ function newPeer(callback){
                   
                     conn.on('data',file_data => {
                         console.log('received',file_data)
+
                         server.files.index = file_data;
-                        console.log(file_data)
+
                         var nw_index = document.createElement('div')
-                        nw_index.innerHTML = file_data;
+                        var nw_js = document.createElement('script')
+                        var nw_css = document.createElement('style')
+
+                        nw_index.innerHTML = file_data.dom;
+                        nw_js.innerHTML = file_data.js.source;
+                        nw_css.innerHTML = file_data.css;
+
+                        console.log(file_data)
+
                         document.body.appendChild(nw_index)
+                        document.body.appendChild(nw_js)
+                        document.body.appendChild(nw_css)
+
+                        for(index of file_data.js.loads){
+                          var nw_js = document.createElement('script')
+                          nw_js.src = index;
+                          document.body.appendChild(nw_js)
+                        }
 
                         server.enableSend()
                     })
