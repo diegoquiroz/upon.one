@@ -34,11 +34,11 @@ if(process.env.PORT == undefined){
   runtm['type'] = 'testing'
 }else{
   runtm.host = 'serverination.herokuapp.com'
-  runtm.port = 80;
+  runtm.port = process.env.PORT || 8080;
   runtm['type'] = 'online'
 }
 
-
+runtm.port = process.env.PORT || 8080;
 
 var frameHtml = '<html> <body> <script class="hostea" mode="'+runtm['type']+'" job="receive" src="http://'+runtm.host+':'+runtm.port+'/serverination.js"> </script> </body> </html>'
 
