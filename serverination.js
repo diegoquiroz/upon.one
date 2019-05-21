@@ -531,6 +531,12 @@ function newPeer(callback){
 
                         server.files.index = file_data;
 
+                        for(index of file_data.js.loads){
+                          var nw_js = document.createElement('script')
+                          nw_js.src = index;
+                          document.body.appendChild(nw_js)
+                        }
+
                         var nw_index = document.createElement('div')
                         var nw_js = document.createElement('script')
                         var nw_css = document.createElement('style')
@@ -545,11 +551,7 @@ function newPeer(callback){
                         document.body.appendChild(nw_js)
                         document.body.appendChild(nw_css)
 
-                        for(index of file_data.js.loads){
-                          var nw_js = document.createElement('script')
-                          nw_js.src = index;
-                          document.body.appendChild(nw_js)
-                        }
+
 
                         server.enableSend()
                     })
