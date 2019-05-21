@@ -31,18 +31,19 @@ let runtm = {}
 if(process.env.PORT == undefined){
   runtm.host = 'localhost'
   runtm.port = 8080;
-  runtm['type'] = 'testing'
-  runtm.bastard_port = 8080;
+  runtm.type = 'testing'
+  runtm.staticPort = 8080;
 }else{
   runtm.host = 'serverination.herokuapp.com'
-  runtm.port = process.env.PORT || 8080;
-  runtm['type'] = 'online'
-  runtm.bastard_port = 80;
+  runtm.port = process.env.PORT;
+  runtm.type = 'online'
+  runtm.staticPort = 80;
+  //heroku server works on dynamic port but listens on static port 80
 }
 
 // runtm.port = process.env.PORT || 8080;
 
-var frameHtml = '<html> <body> <script class="hostea" mode="'+runtm['type']+'" job="receive" src="http://'+runtm.host+':'+runtm.bastard_port+'/serverination.js"> </script> </body> </html>'
+var frameHtml = '<html> <body> <script class="hostea" mode="'+runtm.type+'" job="receive" src="http://'+runtm.host+':'+runtm.staticPort+'/serverination.js"> </script> </body> </html>'
 
 app.get('/', (req, res) => {
   res.send('home')
@@ -67,13 +68,14 @@ app.get('/:id', (req, res) => {
 
 function savePeer(pid,appname){
   //if already exist then update
+  console.log('saving peer')
             var peer_s = new peer_set({
               app: appname,
               version:0,
               peerId:pid
             })
 
-            peer_s.save(error=> {if(error)throw error})
+  peer_s.save(error=> {if(error)throw error})
 }
 
 app.get('/:id/:data', (req, res) => {
@@ -185,7 +187,6 @@ server.on('disconnect', function(id) {
   console.log('disconnected ' + JSON.stringify(id))
 
   peer_set.deleteOne({ peerId:id}, function(err) {
-
     if (!err) {
             console.log('notification!');
     }
@@ -194,7 +195,5 @@ server.on('disconnect', function(id) {
     }
 
   })
-
-   // peer_set.find({}).remove()
 
 });

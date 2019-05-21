@@ -450,7 +450,7 @@ function newPeer(callback){
                 body: 'data='+JSON.stringify(server.configuration)
             }).then(
                 data=>{
-                  console.log(data,arg,'hosting on')
+                  console.log('Link:'+server.info.host+":"+server.info.port+"/"+server.configuration.name,'peer:'+arg)
                   server.enableSend()
                 }
               )
