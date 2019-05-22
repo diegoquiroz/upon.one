@@ -531,28 +531,43 @@ function newPeer(callback){
 
                         server.files.index = file_data;
 
-                        for(index of file_data.js.loads){
-                          var nw_js = document.createElement('script')
-                          nw_js.src = index;
-                          document.body.appendChild(nw_js)
+                        function loadScript(src) {
+                            return new Promise(function (resolve, reject) {
+                                var s;
+                                s = document.createElement('script');
+                                s.src = src;
+                                s.onload = resolve;
+                                s.onerror = reject;
+                                document.head.appendChild(s);
+                            });
                         }
 
-                        var nw_index = document.createElement('div')
-                        var nw_js = document.createElement('script')
-                        var nw_css = document.createElement('style')
+                        async function addScripts(){
+                          
+                          for(index of file_data.js.loads){
+                            console.log('loading')
+                            await loadScript(index)
+                          }
 
-                        nw_index.innerHTML = file_data.dom;
-                        nw_js.innerHTML = file_data.js.source;
-                        nw_css.innerHTML = file_data.css;
+                          console.log('load finished')
+                          var nw_index = document.createElement('div')
+                          var nw_js = document.createElement('script')
+                          var nw_css = document.createElement('style')
 
-                        console.log(file_data)
+                          nw_index.innerHTML = file_data.dom;
+                          nw_js.innerHTML = file_data.js.source;
+                          nw_css.innerHTML = file_data.css;
 
-                        document.body.appendChild(nw_index)
-                        document.body.appendChild(nw_js)
-                        document.body.appendChild(nw_css)
+                          console.log(file_data)
+
+                          document.body.appendChild(nw_index)
+                          document.body.appendChild(nw_js)
+                          document.body.appendChild(nw_css)
+
+                        }
 
 
-
+                        addScripts()
                         server.enableSend()
                     })
 
