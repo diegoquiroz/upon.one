@@ -543,7 +543,7 @@ function newPeer(callback){
                         }
 
                         async function addScripts(){
-                          
+
                           for(index of file_data.js.loads){
                             console.log('loading')
                             await loadScript(index)
@@ -560,9 +560,17 @@ function newPeer(callback){
 
                           console.log(file_data)
 
-                          document.body.appendChild(nw_index)
-                          document.body.appendChild(nw_js)
-                          document.body.appendChild(nw_css)
+
+                          //loop through nw_index and append all the 
+
+                          for( index of nw_index.children){
+                            document.body.appendChild(index)
+                          }
+                          
+
+
+                          document.head.appendChild(nw_js)
+                          document.head.appendChild(nw_css)
 
                         }
 

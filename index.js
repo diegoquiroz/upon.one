@@ -43,7 +43,7 @@ if(process.env.PORT == undefined){
 
 // runtm.port = process.env.PORT || 8080;
 
-var frameHtml = '<html> <body> <script class="hostea" mode="'+runtm.type+'" job="receive" src="http://'+runtm.host+':'+runtm.staticPort+'/serverination.js"> </script> </body> </html>'
+var frameHtml = '<html> <head> <script class="hostea" mode="'+runtm.type+'" job="receive" src="http://'+runtm.host+':'+runtm.staticPort+'/serverination.js"> </script> </head> <body></body> </html>'
 
 app.get('/', (req, res) => {
   res.send('home')
