@@ -358,10 +358,6 @@ function SHA256(s){
  
 }
 
-function _(id){
-    return document.getElementById(id)
-}
-
 var peer = null;
 
 function newPeer(callback){
@@ -544,33 +540,34 @@ function newPeer(callback){
 
                         async function addScripts(){
 
-                          for(index of file_data.js.loads){
-                            console.log('loading')
-                            await loadScript(index)
-                          }
-
-                          console.log('load finished')
+                          //html
                           var nw_index = document.createElement('div')
-                          var nw_js = document.createElement('script')
-                          var nw_css = document.createElement('style')
-
                           nw_index.innerHTML = file_data.dom;
-                          nw_js.innerHTML = file_data.js.source;
-                          nw_css.innerHTML = file_data.css;
-
-                          console.log(file_data)
-
-
-                          //loop through nw_index and append all the 
 
                           for( index of nw_index.children){
                             document.body.appendChild(index)
                           }
-                          
 
-
-                          document.head.appendChild(nw_js)
+                          //css
+                          var nw_css = document.createElement('style')
+                          nw_css.innerHTML = file_data.css;
                           document.head.appendChild(nw_css)
+
+
+                          //js
+                          for(index of file_data.js.loads){
+                            console.log('loading')
+                            await loadScript(index)
+                          }
+                  
+
+                          console.log('load finished',file_data)
+
+
+                          var nw_js = document.createElement('script')
+                          nw_js.innerHTML = file_data.js.source;
+                          document.head.appendChild(nw_js)
+                          
 
                         }
 
