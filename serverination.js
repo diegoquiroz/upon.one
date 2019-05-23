@@ -399,89 +399,66 @@ function newPeer(callback){
         init:function(config){
 
             function stripScripts(s) {
-    var div = document.createElement('div');
-    div.innerHTML = s;
-    var scripts = div.getElementsByTagName('script');
-    var i = scripts.length;
-    while (i--) {
-      scripts[i].parentNode.removeChild(scripts[i]);
-    }
-    return div.innerHTML;
-  }
+              var div = document.createElement('div');
+              div.innerHTML = s;
+              var scripts = div.getElementsByTagName('script');
+              var i = scripts.length;
+              while (i--) {
+                scripts[i].parentNode.removeChild(scripts[i]);
+              }
+              return div.innerHTML;
+            }
 
           server.sat()
 
           if (config['index'] == undefined) {
 
-            var index_file = document.body.cloneNode(true)
-            var js_file = {};
-            js_file.loads = []
-            var css_file;
-            
-            var scriptfiles = index_file.getElementsByTagName('script');
-            
+            server.files.index = {}
 
+            //html
+            server.files.index.dom = stripScripts(document.body.innerHTML)
 
-              for(index of scriptfiles){
-
-                
-                var src = index.src
-                var id_class = '';
-
-                if(index.getAttribute('class')){
-                  id_class = index.getAttribute('class')
-                }
-
-                
-
-                if ( src.indexOf('serverination.js') !== -1 || id_class.indexOf('private') !== -1 ) {
-
-                  console.log('removing')
-                  // index.parentNode.removeChild(index)
-                  
-                }else{
-
-                  console.log(src)
-
-                  if(src){ js_file.loads.push(src) }else{
-
-
-                    js_file.source == undefined? js_file.source = index.innerHTML : js_file.source += index.innerHTML
-
-                
-
-                 }
-                  
-                }
-
-              }
-
-            
-
-            var style_tags = document.getElementsByTagName('style')
-
-            for(index of style_tags){
-
-              css_file == undefined? css_file = index.innerHTML : css_file += index.innerHTML
+            //css
+            for(index of document.getElementsByTagName('style') ){
+              server.files.index.css == undefined? server.files.index.css = index.innerHTML : server.files.index.css += index.innerHTML
             }
 
-            //refreshing doesn't removes the peer from db
 
-            server.files.index = {}
-            server.files.index.js = {}
+            //js
+
+            window.onload = get_scriptTags
+
+            function get_scriptTags(){
+               
+                var js_file = {loads:[],source:''};
+                var scriptfiles =  document.body.getElementsByTagName('script');
+
+                for(index of scriptfiles){
+                  var src = index.src
+                  var id_class = index.getAttribute('class') || ''
+                  if( src.indexOf('serverination.js') == -1 && id_class.indexOf('private') == -1){
+                    src !== ""? js_file.loads.push(src) : js_file.source += index.innerHTML
+                  }
+                }
+              
+                server.files.index.js = {}
+                server.files.index.js = js_file
+
+                console.log('loaded',server.files.index)
+                launch()
+
+
+            }
+
             
-            server.files.index.css = css_file
-
-            server.files.index.js = js_file
-            server.files.index.dom = stripScripts(index_file.innerHTML)
-
-            console.log(server.files.index)
             
           } 
+          function launch(){
+              server.configuration.password = SHA256(config.password)
+              server.configuration.name = config.name
+              newPeer(server.host)        
+          }
 
-          server.configuration.password = SHA256(config.password)
-          server.configuration.name = config.name
-          newPeer(server.host)
         },
 
         host:function(arg) {
