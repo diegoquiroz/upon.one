@@ -25,7 +25,7 @@ let peer_set = db.peers
 
 let runtm = {}
 
-
+ //refreshing doesn't removes the peer from db
 // console.log(process.env.PORT)
 
 if(process.env.PORT == undefined){
@@ -43,7 +43,11 @@ if(process.env.PORT == undefined){
 
 // runtm.port = process.env.PORT || 8080;
 
-var frameHtml = '<html> <head> <script class="hostea" mode="'+runtm.type+'" job="receive" src="http://'+runtm.host+':'+runtm.staticPort+'/serverination.js"> </script> </head> <body></body> </html>'
+function lcUrl(url){
+  return 'http://'+runtm.host+':'+runtm.staticPort+'/'+url
+}
+
+var frameHtml = '<html> <head></head> <body></body> <script class="hostea" mode="'+runtm.type+'" job="receive" src="'+lcUrl('loader.js')+'"> </script> </html>'
 
 app.get('/', (req, res) => {
   res.send('home')
@@ -51,16 +55,20 @@ app.get('/', (req, res) => {
 
 app.get('/:id', (req, res) => {
 
+  function sendJS(file_name){
+    res.set('Content-Type','application/javascript',);
+    res.sendFile( __dirname + "/" + file_name )
+  }
+
   if(req.params.id == "serverination.js"){
 
-    res.set(
-      'Content-Type','application/javascript',
-    );
+    sendJS("serverination.js")
 
-    res.sendFile( __dirname + "/" + "serverination.js" )
-    console.log('ser')
+  }else if(req.params.id == "loader.js"){
+
+    sendJS("loader.js")
+
   }else{
-    console.log(frameHtml)
     res.send(frameHtml)
   }
 

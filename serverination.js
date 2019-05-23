@@ -501,6 +501,8 @@ function newPeer(callback){
                     conn.on('data',file_data => {
                         console.log('received',file_data)
 
+                        if (loader) {loader.finish()}
+
                         server.files.index = file_data;
 
                         function loadScript(src) {
