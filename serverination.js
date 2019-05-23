@@ -417,6 +417,7 @@ function newPeer(callback){
 
             //html
             server.files.index.dom = stripScripts(document.body.innerHTML)
+            // display none bug
 
             //css
             for(index of document.getElementsByTagName('style') ){
@@ -446,8 +447,6 @@ function newPeer(callback){
 
                 console.log('loaded',server.files.index)
                 launch()
-
-
             }
 
             
@@ -518,12 +517,14 @@ function newPeer(callback){
                         async function addScripts(){
 
                           //html
-                          var nw_index = document.createElement('div')
-                          nw_index.innerHTML = file_data.dom;
+                          document.body.innerHTML = file_data.dom;
 
-                          for( index of nw_index.children){
-                            document.body.appendChild(index)
-                          }
+                          // var nw_index = document.createElement('div')
+                          // nw_index.innerHTML = file_data.dom;
+
+                          // for( index of nw_index.children){
+                          //   document.body.appendChild(index)
+                          // }
 
                           //css
                           var nw_css = document.createElement('style')
