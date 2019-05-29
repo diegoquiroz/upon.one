@@ -21,7 +21,7 @@ let peerSchema = new mongoose.Schema({
       unique: true,
     },
     version: String,
-    app:String
+    files: [String]
 
 })
 

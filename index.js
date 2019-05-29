@@ -74,17 +74,20 @@ app.get('/:id', (req, res) => {
 
 })
 
-function savePeer(pid,appname){
+function savePeer(pid,filename){
   //if already exist then update
   console.log('saving peer')
-            var peer_s = new peer_set({
-              app: appname,
-              version:0,
-              peerId:pid
-            })
+
+  var peer_s = new peer_set({
+    files: filename,
+    version:0,
+    peerId:pid
+  })
 
   peer_s.save(error=> {if(error)throw error})
 }
+
+//select peer at random
 
 app.get('/:id/:data', (req, res) => {
 
@@ -92,16 +95,19 @@ app.get('/:id/:data', (req, res) => {
 
     var pid = req.query.pid
     var app_n = req.params.id
-    // console.log(pid,'pid')
-    if (req.params.data == 'index') {
+    var fileName = app_n+"/"+req.params.data;
 
-      peer_set.find({app:app_n} , function(err_o, info_o){
+    console.log(fileName)
+
+      peer_set.find({files:fileName} , function(err_o, info_o){
 
         // console.log(info_o)
         if(info_o.length !== 0){// if other peer exist
+
             res.send( JSON.stringify( info_o[0].peerId ) )
-            savePeer(pid,app_n)
+            savePeer(pid,fileName)
             console.log('if other peer exist')
+
         }else{//if only seed is online
           
           app_set.find({name:app_n} , function(err, info){
@@ -109,11 +115,12 @@ app.get('/:id/:data', (req, res) => {
             if(info.length !== 0){
 
               res.send( JSON.stringify( info[0].seed ) )
-              savePeer(pid,app_n)
+              savePeer(pid,fileName)
 
             }else{res.status(404).send(JSON.stringify('Not found') )} 
-
+            
           })
+
         }
       })
 
@@ -123,10 +130,10 @@ app.get('/:id/:data', (req, res) => {
 
 
 
-  }else{
+  // }else{
     //could be /peerjs
     // server will connect to the peer and access the file
-  }
+  // }
 
   
 })

@@ -358,46 +358,6 @@ function SHA256(s){
  
 }
 
-var peer = null;
-
-function newPeer(callback){
-
-    // if (peer.id !== null) {
-    //   callback(peer.id)
-    //   return
-    // }
-    peer = new Peer({
-            host: server.info.host,
-            port: server.info.port,
-            path: '/peerjs'
-    })
-
-
-    peer.on('open',function(){
-        console.log(peer)
-        callback(peer.id)
-    })
-
-
-
-}
-
-
-    var server = {
-        info:{},configuration:{},files:{},
-        sat:function(){
-
-          if (server.mode == 'testing') {
-              server.info.host = 'localhost'
-              server.info.port = 8080
-          }else{
-              server.info.host = 'serverination.herokuapp.com'
-              server.info.port = 80
-          }
-        },
-
-        init:function(config){
-
             function stripScripts(s) {
               var div = document.createElement('div');
               div.innerHTML = s;
@@ -409,24 +369,50 @@ function newPeer(callback){
               return div.innerHTML;
             }
 
-          server.sat()
 
-          if (config['index'] == undefined) {
+var peer = null;
 
-            server.files.index = {}
+function newPeer(...callback){
+
+    peer = new Peer({
+            host: server.info.host,
+            port: server.info.port,
+            path: '/peerjs'
+    })
+
+
+    peer.on('open',function(){
+        for(index of callback){
+          index(peer.id)
+        }
+        
+    })
+
+
+
+}
+
+
+    var server = {
+        info:{},configuration:{},files:{},request_callbacks:{},listen_callbacks:{},
+        go:function(...arg){
+
+            // console.log(arg)
+            server.configuration.password = SHA256(arg[1])
+            server.configuration.name = arg[0]
+
+            server.tmp = {}
 
             //html
-            server.files.index.dom = stripScripts(document.body.innerHTML)
-            // display none bug
+            server.tmp.dom = stripScripts(document.body.innerHTML)
 
             //css
             for(index of document.getElementsByTagName('style') ){
-              server.files.index.css == undefined? server.files.index.css = index.innerHTML : server.files.index.css += index.innerHTML
+              server.tmp.css == undefined? server.tmp.css = index.innerHTML : server.tmp.css += index.innerHTML
             }
 
 
             //js
-
             window.onload = get_scriptTags
 
             function get_scriptTags(){
@@ -442,68 +428,40 @@ function newPeer(callback){
                   }
                 }
               
-                server.files.index.js = {}
-                server.files.index.js = js_file
+                server.tmp.js = {}
+                server.tmp.js = js_file
 
-                console.log('loaded',server.files.index)
-                launch()
+                // console.log('loaded',server.tmp)
+
+                //all configured
+                server.launch()
             }
 
-            
-            
-          } 
-          function launch(){
-              server.configuration.password = SHA256(config.password)
-              server.configuration.name = config.name
-              newPeer(server.host)        
-          }
+        },host:function(){
 
-        },
-
-        host:function(arg) {
-
-
-            server.configuration.peerid = arg
-            fetch( 'http://'+server.info.host+':'+server.info.port, {
-                method: 'POST',
-                headers: {
-                    "Content-type": "application/x-www-form-urlencoded; charset=UTF-8"
-                },
-                body: 'data='+JSON.stringify(server.configuration)
-            }).then(
+            server.configuration.peerid = peer.id
+            fetch( 'http://'+server.info.host+':'+server.info.port, { method: 'POST',headers: {"Content-type": "application/x-www-form-urlencoded; charset=UTF-8"},
+                body: 'data='+JSON.stringify(server.configuration) }).then(
                 data=>{
-                  console.log('Link:'+server.info.host+":"+server.info.port+"/"+server.configuration.name,'peer:'+arg)
-                  server.enableSend()
+                  let host_link = server.info.host+":"+server.info.port+"/"+server.configuration.name;
+
+                  console.log('%c'+host_link, 'color: Green; background-color: LightGreen; padding: 2px 5px; border-radius: 2px');
+                  // console.log('Link:'+server.info.host+":"+server.info.port+"/"+server.configuration.name)
                 }
               )
 
-        },
+             server.listen('/index', function(){return server.tmp} )
 
-        receive: function(){
+        },receive: function(){
 
-              server.sat()
+                server.request('/index',rec_index)
 
-              var startrec = function(arg){
+                  function rec_index(file_data) {
 
-                fetch(window.location.href+"/index?pid="+peer.id,{method:'GET'}).then(response => response.json()).then(
-
-                  hosterId => {
-
-                    console.log(hosterId,'rec from')
-
-                    window.conn = peer.connect(hosterId)
-                 
-                    conn.on('open', function(){
-                      conn.send('you need to send');
-                    });
-
-                  
-                    conn.on('data',file_data => {
                         console.log('received',file_data)
+                        //file data is null
 
                         if (loader) {loader.finish()}
-
-                        server.files.index = file_data;
 
                         function loadScript(src) {
                             return new Promise(function (resolve, reject) {
@@ -521,18 +479,11 @@ function newPeer(callback){
                           //html
                           document.body.innerHTML = file_data.dom;
 
-                          // var nw_index = document.createElement('div')
-                          // nw_index.innerHTML = file_data.dom;
-
-                          // for( index of nw_index.children){
-                          //   document.body.appendChild(index)
-                          // }
 
                           //css
                           var nw_css = document.createElement('style')
                           nw_css.innerHTML = file_data.css;
                           document.head.appendChild(nw_css)
-
 
                           //js
                           for(index of file_data.js.loads){
@@ -553,61 +504,90 @@ function newPeer(callback){
 
 
                         addScripts()
-                        server.enableSend()
-                    })
-
-
-                  }
-
-
-                  )
-
-
-
-            
-
-
-              }
-
-              newPeer(startrec)
-
+                    }
         },
         enableSend:function(){
 
           peer.on('connection', function(conn) {
-            console.log('connection established')
             window.conn = conn;
-
-            conn.on('data', function(data){
-
-             console.log(data)
-             conn.send( server.files.index )
-
-           });
-
-            
-
-            
-            
-
+            conn.on('data', function(data){ server.msg(data) })
           });
+
+        },msg:function(data){
+
+            //it is triggered by either the enable send or request (needs simplification)
+            console.log(data.type)
+
+            if(data.type == 'request') {
+
+              var responsedata;
+              if(server.files[data.url] !== undefined){
+                responsedata = server.files[data.url]
+              }else{
+                let call = this.listen_callbacks[ extractFormat(data.url) ]
+                responsedata = call(data.url)
+              }
+              conn.send( {url: data.url, response:responsedata, type:'response'} )
+
+            }else{//if it is a response
+
+              let call = this.request_callbacks[data.url]
+              call(data.response)
+              server.files[data.url] = data.response
+              // compare hash
+            }
+
+        },request:function(url,callback){
+          this.request_callbacks[url] = callback
+
+          fetch(window.location.href+url+"?pid="+peer.id,{method:'GET'}).then(response => response.json()).then( hosterId => {
+
+              window.conn = peer.connect(hosterId)
+
+              conn.on('open', function(){
+                conn.send({url:url, type:'request'})
+                conn.on('data', function(data){ server.msg(data) })
+              })
+
+            })
+
+        },listen:function(url_format,callback){// reciever peer
+
+          this.listen_callbacks[url_format] = callback
+
+        },launch:function(){
+
+          if (server.mode == 'testing') {
+            server.info.host = 'localhost'
+            server.info.port = 8080
+          }else{
+            server.info.host = 'serverination.herokuapp.com'
+            server.info.port = 80
+          }
+
+          
+          server.job == 'receive'? this.callback = server.receive : this.callback = server.host
+          newPeer(this.callback,server.enableSend)
+          
         }
 
 
 }
 
-// (function(){
-
-  let ScTag = document.getElementsByClassName('hostea')[0]
-
-  if (ScTag) {
-    server.mode = ScTag.getAttribute("mode");
-
-    if (ScTag.getAttribute("job") == 'receive') {
-      server.receive()
-      console.log('I have to receive')
-    } 
+  function extractFormat(url){
+    return url
   }
+
+ 
+  let ScTag = document.getElementsByClassName('hostea')[0]
+  if (ScTag){
+    server.mode = ScTag.getAttribute("mode");
+    server.job = ScTag.getAttribute("job");
+    server.launch()
+  }
+  
+
+
 
 
 // }());
