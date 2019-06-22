@@ -318,7 +318,7 @@ function hash(data){
   return cry.createHmac('sha256',data).digest('hex')
 }
 
-function lcUrl(url){ return 'http://'+runtm.host+':'+runtm.staticPort+'/'+url }
+function lcUrl(url){ return (runtm.type == 'testing'? 'http://' : 'https://' )+runtm.host+':'+runtm.staticPort+'/'+url }
 
 var srv = app.listen(runtm.port, (err) => {console.log("App started....")});
 var server = require('peer').ExpressPeerServer(srv, {debug: true })
