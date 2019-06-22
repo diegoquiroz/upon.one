@@ -1,10 +1,13 @@
 let loader = {
     finish:function(){
         loader.playing = false;
+        // console.log('closing')
         loader.box.parentNode.removeChild(loader.box)
+
     },
 
     init:function(){
+        document.body.style.margin = 0
         loader.playing = true
         var c = document.createElement('canvas')
         loader.box = c
@@ -55,3 +58,5 @@ let loader = {
 }
 
 document.body.onload = loader.init
+
+//if logo exist
