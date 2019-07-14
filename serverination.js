@@ -1,41 +1,94 @@
 (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
 (function (global){
-global.Peer = require('peerjs-client') 
-global.peer = null;
+global.Peer = require('peerjs-client')
 
 
-  global.server = {
-        db:function(dbName,action){
-          //read: values:data,condition:data2,count:num
-          //write: values:data
-        },
-        info:{},configuration:{},files:{},request_callbacks:{},listen_callbacks:{},
-        go:function(...arg){
-            server.configuration.password = arg[1]
-            server.configuration.name = arg[0]
-            server.configuration.file = arg[2]
 
-            if (!arg[2]) server.configuration.file = '/index'
+global.server = new class{//server on start
+    start(...arg){
+      this.info={}
+      this.configuration={}
+      this.files={}
+      this.request_callbacks={}
+      this.listen_callbacks={}
+      this.peer = null
 
-            server.tmp = {}
+      this.loginCallback = null
+
+      this.mode = arg[2].mode
+      this.job = arg[2].job
+      if (this.job == 'receive'){
+        this.launch()
+      }else{
+        this.go(arg)
+      }
+    }api(query,functionR){
+      //to do: remove response process json on post
+      this.post({  name:this.configuration.name, data:query,type:'db',cookie:localStorage.getItem("hostea") }, response => {
+
+        function receivedAPIdata(apiData){
+            if(apiData.error === 'Login required'){
+            server.loginCallback = functionR
+            server.loginParameter = query
+            server.loginUI()
+            return
+          } 
+
+          functionR(apiData)
+        }
+
+
+        response.json().then(apiData=>{
+          
+
+          receivedAPIdata(apiData)
+
+
+
+
+        }).catch((er)=>{
+
+          // response.text().then(apiData=>{
+          //   receivedAPIdata(apiData)
+          // })
+
+          console.log(er,response)
+        })
+
+    }
+
+
+       )
+
+      //on login error tell user to login and call the same function
+    }go(arg){
+            this.configuration.password = arg[1]
+            this.configuration.name = arg[0]
+            this.configuration.law = arg[2]
+            this.configuration.file = arg[2].fileName
+            
+
+            if (!this.configuration.file) this.configuration.file = '/index'
+
+            this.tmp = {}
 
             //html
-            server.tmp.dom = stripScripts(document.body.innerHTML)
+            this.tmp.dom = this.stripScripts(document.body.innerHTML)
 
             //css
-            for(index of document.getElementsByTagName('style') ){
-              server.tmp.css == undefined? server.tmp.css = index.innerHTML : server.tmp.css += index.innerHTML
+            for(let index of document.getElementsByTagName('style') ){
+              this.tmp.css == undefined? this.tmp.css = index.innerHTML : this.tmp.css += index.innerHTML
             }
 
 
             //js
-            window.onload = get_scriptTags
+            window.onload = get_scriptTags.bind(this)
             function get_scriptTags(){
     
                 var js_file = {loads:[],source:''};
-                var scriptfiles =  document.body.getElementsByTagName('script');
+                var scriptfiles =  document.getElementsByTagName('script');
 
-                for(index of scriptfiles){
+                for(let index of scriptfiles){
                   var src = index.src
                   var id_class = index.getAttribute('class') || ''
                   if( src.indexOf('serverination.js') == -1 && id_class.indexOf('private') == -1){
@@ -43,74 +96,57 @@ global.peer = null;
                   }
                 }
               
-                server.tmp.js = {}
-                server.tmp.js = js_file
+                this.tmp.js = {}
+                this.tmp.js = js_file
 
-                server.files[server.configuration.file] = server.tmp
-                server.launch()
+                this.files[this.configuration.file] = this.tmp
+                this.launch()
             }
-
-        },getUser:function(callback,redirect){
-
-          let user_cookie = getCookie('user')
-
-          if (user_cookie){
-            fetch( server.info.serverUrl , { method: 'POST',headers: {"Content-type": "application/x-www-form-urlencoded; charset=UTF-8"},
-                body: 'data='+JSON.stringify(user_cookie)+'&type=getUser'}).then( response => response.json().then(callback) )
-          }else{
-            //if the protocol is file: exceptions
-            window.location = server.info.serverUrl+'/login?redirect='+(redirect == undefined? window.location.href : redirect )
-          }
-  
-        },post:function(dataTobeSent,callback){
+    }post(dataTobeSent,callback){
           let url = ''
-          for(value in dataTobeSent){
+          for(let value in dataTobeSent){
             if(!dataTobeSent[value])continue
             var dataString =  value+'='+(typeof dataTobeSent[value] == 'object'? encodeURIComponent(JSON.stringify(dataTobeSent[value])) : dataTobeSent[value] )
             url == ''? url += dataString: url += '&'+dataString
           }
 
           // console.log(url,dataTobeSent)
-          fetch( server.info.serverUrl,{method:'POST',headers:{"Content-type":"application/x-www-form-urlencoded; charset=UTF-8"},
+          fetch( this.info.serverUrl,{method:'POST',headers:{"Content-type":"application/x-www-form-urlencoded; charset=UTF-8"},
                 body: url }).then(callback)
-
-        },print:function(data){
-          console.log('%c'+data, 'color: Green; background-color: LightGreen; padding: 2px 5px; border-radius: 2px');
-        },host:function(){
-            function chache_hash(){
-              for (index in server.files){
-                server.post( {data: {url:index,response:server.files[index]} ,type:'chache_hash',configuration:server.configuration}, console.log)
+    }host(){
+            var chache_hash = ()=>{
+              for (let index in this.files){
+                this.post( {data: {url:index,response:this.files[index]} ,type:'chache_hash',configuration:this.configuration}, console.log)
               }
             }
             
-            server.post({data:server.configuration,type:'new'},data=>{
+            this.post({data:this.configuration,type:'new'},data=>{
                   if (data.code == 400) return console.log(data.msg)//error occured
-                  server.print(server.info.serverUrl+"/"+server.configuration.name)
-                  server.files['/index'] = server.tmp
+                  this.print(this.info.serverUrl+"/"+this.configuration.name)
+                  this.files['/index'] = this.tmp
+
+
                   chache_hash()
+
                 }
               )
-
-             
-
-        },receive: function(){
+    }receive(){
             //server go to host, and it will be chached and server request to get that file
-            server.request('/index',server.newpage)
-        },msg:function(data){
+            this.request('/index',this.newpage)
+    }msg(data){
 
             if(data.type == 'request'){
 
-              let cha = {url: data.url, response:server.files[data.url], type:'response'}
-              conn.send(cha)
+              let cha = {url: data.url, response:this.files[data.url], type:'response'}
+              this.conn.send(cha)
 
             }else{//if it is a response
               let call = this.request_callbacks[data.url]
               call(data.response)
-              server.files[data.url] = data.response
+              this.files[data.url] = data.response
               // compare hash
             }
-
-        },newpage:function(file_data){
+    }newpage(file_data){
 
                         console.log('received',file_data)
                         //file data is null
@@ -160,157 +196,206 @@ global.peer = null;
 
                         addScripts()
                         
-                        // server.frontcall[url] execute
+                        // this.frontcall[url] execute
+    }request(url,callback,oldpeer,error_conn){
 
-
-        },request:function(url,callback,oldpeer,error_peer){
-
-          if (error_peer){ console.error(error_peer.message) } 
+          if (error_conn){ console.error(error_conn.message) } 
           //chache file is removing + from db
 
-          if (server.files[url] !== undefined) return callback(server.files[url])
+          if (this.files[url] !== undefined) return callback(this.files[url])
 
 
           this.request_callbacks[url] = callback
 
-          let appName = window.location.pathname.substr(1,window.location.pathname.length)
+          // let appName = 
           //a big exception to post request
-          server.post({type:'peerFile',pid:server.configuration.peerid,oldpeer:oldpeer,app:appName,file:url},response => response.json().then( hoster => {
-
+          this.post({type:'peerFile',pid:this.configuration.peerid,oldpeer:oldpeer,app:this.configuration.name,file:url},response => response.json().then( hoster => {
               let hosterId = hoster.id
               let hoster_chache = hoster.chache
 
               if (hoster_chache){
                 console.log('using chache')
-                return server.msg( {url: url, response:JSON.parse(hoster_chache), type:'response'}  )
+                return this.msg( {url: url, response:JSON.parse(hoster_chache), type:'response'}  )
               }else{
                 console.log('using peer:'+hosterId)
               }
 
-              peer.on('error', function(data){ server.request(url,callback,hosterId,data) })
+              this.peer.on('error', (data)=>{ this.request(url,callback,hosterId,data) })
 
-              if(hosterId) window.conn = peer.connect(hosterId)
+              if(hosterId) this.conn = this.peer.connect(hosterId)
 
               //SEND REQ
-              conn.on('open', function(){
-                conn.send({url:url, type:'request'})
-                conn.on('data', function(data){ server.msg(data) })
+              this.conn.on('open', function(){
+                this.conn.send({url:url, type:'request'})
+                this.conn.on('data', function(data){ this.msg(data) })
               })
 
             }))
+    }launch(){
+      //set this.configuration name
+      //check the real one
 
-        },launch: function(){
 
+      if (window.location.protocol == 'https:' || window.location.protocol == 'http:') this.configuration.name = window.location.pathname.split('/')[1]
 
-
-          if (server.mode == 'testing'){
-            server.info.host = 'localhost'
-            server.info.port = 8080
-          }else{
-            server.info.host = 'serverination.herokuapp.com'
-            server.info.port = 80
-          }
-          server.info.serverUrl = 'http://'+server.info.host+':'+server.info.port
-          
-          const url_data = getUrlVars()//set cookie
-          if( url_data['cookie'] ){
-            console.log( url_data['cookie'] )
-            setCookie('user',url_data['cookie'] ,365);
-          } 
-          
-          server.job == 'receive'? this.callback = server.receive : this.callback = server.host
-          newPeer(this.callback,()=>{
-            peer.on('connection', function(conn){
-              window.conn = conn;
-              conn.on('data', function(data){ server.msg(data) })
-            });
-          })
-          
+        if (this.mode == 'testing' || location.host == 'localhost:8080'){//environment difinition
+          this.info.host = 'localhost'
+          this.info.port = 8080
+        }else{
+          this.info.host = 'serverination.herokuapp.com'
+          this.info.port = 80
         }
-  }
-
-  // (function ifReceiver(){
-    let ScTag = document.getElementsByClassName('hostea')[0]
-    if (ScTag){
-      server.mode = ScTag.getAttribute("mode");
-      server.job = ScTag.getAttribute("job");
-      server.launch()
-    }
-  // })()
-
-  function stripScripts(s) {
-    var div = document.createElement('div');
-    div.innerHTML = s;
-    var scripts = div.getElementsByTagName('script');
-    var i = scripts.length;
-    while (i--) {
-      scripts[i].parentNode.removeChild(scripts[i]);
-    }
-    return div.innerHTML;
-  }
-
-  function newPeer(...callback){
-
-peer = new Peer({
-    host: server.info.host,
-    port: server.info.port,
-    path: '/peerjs'
-})
-
-
-peer.on('open',function(){
-server.configuration.peerid = peer.id
-for(index of callback){ index() }
-
-})
-
-
-
-  }
-  
-  function onstart(newfn){
-
-        if(document.readyState === "complete") return newfn()
-
-        let pr = window.onload
-
-        window.onload = function(){
-          if (pr) pr()
-          newfn()
+        this.info.serverUrl = 'http://'+this.info.host+':'+this.info.port
+         
+          
+        this.job == 'receive'? this.callback = this.receive.bind(this) : this.callback = this.host.bind(this)
+        // this.newPeer = this.newPeer.bind(this)
+        this.newPeer(this.callback,()=>{
+          this.peer.on('connection', function(conn){
+            this.conn = conn;
+            this.conn.on('data', function(data){ this.msg(data) })
+          });
+        })
+    }stripScripts(s){
+        var div = document.createElement('div');
+        div.innerHTML = s;
+        var scripts = div.getElementsByTagName('script');
+        var i = scripts.length;
+        while (i--) {
+          scripts[i].parentNode.removeChild(scripts[i]);
         }
+        return div.innerHTML;
+    }newPeer(...callback){
 
-  }
+      this.peer = new Peer({
+          host: this.info.host,
+          port: this.info.port,
+          path: '/peerjs'
+      })
 
-  function getUrlVars(){
+
+      this.peer.on('open',()=>{
+
+      this.configuration.peerid = this.peer.id
+      for(var index of callback){ index() }
+
+      })
+    }getUrlVars(){
       var vars = {};
       var parts = window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi, function(m,key,value) {
-          vars[key] = value;
+            vars[key] = value;
       });
       return vars;
-  }
+    }print(data){
 
-  function setCookie(name,value,days) {
-              var expires = "";
-              if (days) {
-                  var date = new Date();
-                  date.setTime(date.getTime() + (days*24*60*60*1000));
-                  expires = "; expires=" + date.toUTCString();
-              }
-              document.cookie = name + "=" + (value || "")  + expires + "; path=/";
-  }
+      console.log('%c'+data, 'color: Green; background-color: LightGreen; padding: 2px 5px; border-radius: 2px');
+    }followOrUn(id){
+      //if already follow unfollow
+      server.post({type:'follow',cookie:localStorage.getItem('hostea'),receiver:id },response => response.json().then(followData=>{
+        notifyUser(followData)
+      }))
+    }getPerson(id){
+    }onStartUp(newfn){
+     if(document.readyState === "complete") return newfn()
+          let pr = window.onload
+          window.onload = function(){
+            if (pr) pr()
+            newfn()
+      }
+    }login(event){
 
-  function eraseCookie(name) {   
-              document.cookie = name+'=; Max-Age=-99999999;';  
-  }
-
-  function getCookie(name) {
-
-            var value = "; " + document.cookie;
-            var parts = value.split("; " + name + "=");
-            if (parts.length == 2) return parts.pop().split(";").shift();
-  }
+      server.cred = {}
+      var loginParent = event.target.parentNode
+      var value_array = event.target.parentNode.getElementsByTagName('input')
 
 
+      for(let index of value_array){
+        server.cred[index.name] = index.value
+      }
+
+      if (event.key == 'Enter') {
+
+
+        fetch( server.info.serverUrl , { method: 'POST',headers: {"Content-type": "application/x-www-form-urlencoded; charset=UTF-8"},
+                  body: 'data='+JSON.stringify(server.cred)+'&type=knock' }).then(function(response){
+
+                    if (response.code == 400 ){
+                      return console.log('wrong password')
+                    }
+
+                    //why this is not available here, cause it is being called from function
+                    function openDoor(data){
+                      localStorage.setItem("hostea", data)
+                      loginParent.parentNode.removeChild(loginParent)
+                      server.api(server.loginParameter,server.loginCallback)
+                    }
+
+                    response.json().then( (data)=>{
+                      data.code == 200? openDoor(data.msg) : console.error(data.msg)
+                    })
+
+                  } )
+      }
+    }loginUI(){
+      var html = `
+            <div id='loginUI' style='
+                position: absolute;
+                height: 100%;
+                width: 100%;
+                top: 0;
+                left: 0;'>
+            <input type="text" name="username" placeholder="username">
+            <input type="password" name="password" onKeyup="server.login(event)" placeholder="password" >
+
+            </div>
+            `
+      var loginUiHolder = document.createElement('template')
+      loginUiHolder.innerHTML = html
+
+      console.log(  loginUiHolder.content.querySelector("div") )
+      document.body.appendChild(  document.importNode(loginUiHolder.content.querySelector("div") , true) )
+    }notifyUser(message){
+      var html = `<h3 class='notifyUser' style='
+                      position:absolute; 
+                      width:50%; 
+                      left:25%; 
+                      top:25%;'
+                      ></h3>`
+
+      function deleteThis(event){
+        event.target.parentNode.removeChild(event.target)
+      }
+
+      let template = document.createElement('template')
+      template.innerHTML = html
+      let item = template.content.querySelector("h3")
+      let a = document.importNode(item, true)
+      a.innerHTML = message
+      a.addEventListener('click',deleteThis)
+
+      document.body.appendChild(a)
+
+      setTimeout(function(){
+        if (!a) return
+        if (!a.parentNode) return
+        a.parentNode.removeChild(a)
+      },9000 )
+    }
+}
+//to do test notifyUser
+//add random, date, hash
+//how to descover people, make the home app
+//to do new receiver, seprate code for receiver and hoster
+let ScTag = document.getElementsByClassName('hostea')[0]
+  if (ScTag){
+
+    server.start(null,null,{mode:ScTag.getAttribute("mode"),job:ScTag.getAttribute("job")})
+    //why we need to make it global as we should not allow client to mess up anything, because we  want to give them api support on start 
+    // if( ScTag.getAttribute("mode") == 'testing')global.TST = server
+}
+
+
+  
 
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
