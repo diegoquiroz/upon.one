@@ -69,7 +69,11 @@ let hashSchema = new mongoose.Schema({
 
 let virtualDB = new mongoose.Schema({
   dbName:String,//db name appname+dbname
-  writer:String,
+  writer:{
+      type: String,
+      required: true,
+      unique: true,
+  },
   unique:{
       type: String,
       required: true,
@@ -88,6 +92,20 @@ let virtualDB = new mongoose.Schema({
   S_4:String,
   S_5:String,
   A_0:[String],
+  created_at:{type: Date, required: true, default: Date.now },
+  updated_at:{type: Date, required: true, default: Date.now }
+})
+
+
+//only sender can delete the row
+let action = new mongoose.Schema({
+  appid:String,//db name appname+dbname
+  sender:String,
+  receiver:String,
+  reference:String,
+  message:String,
+  type:String,//notification(addid,sender),like(addid,sender,receiver,reference),follow(appid,receiver,sender)
+  created_at:{type: Date, required: true, default: Date.now },
 })
 
 
@@ -99,23 +117,20 @@ let lawSchema = new mongoose.Schema({
       unique: true,
     },
   DBs:String,
+  cron:String
 
 })
 
-let follow = new mongoose.Schema({
-  sender:String,
-  receiver:String,
-})
 
-let notification = new mongoose.Schema({
-  sender:String,
-  receiver:String,
-  message:String
-})
 
-let like = new mongoose.Schema({
-  user:String,
-  content:String,
+let tasks = new mongoose.Schema({
+  app:{
+      type: String,
+      required: true,
+      unique: true,
+    },
+  query:String,
+  when:String,//daily,weekly,monthly,quaterly
 })
 
 // deleteOne, to unfollow
@@ -129,7 +144,7 @@ module.exports = {
   users: mongoose.model('user',userschema),
   vDb: mongoose.model('virtualDB',virtualDB),
   law: mongoose.model('law',lawSchema),
-  follow: mongoose.model('follow',follow),
-  like: mongoose.model('like',like)
+  tasks: mongoose.model('tasks',tasks),
+  action: mongoose.model('action',action)
 }
 

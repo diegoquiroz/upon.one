@@ -1,27 +1,38 @@
-var express = require('express')
-var bodyParser = require('body-parser')
-var app = express()
-var cry = require('crypto')
-var db = require('./db.js')
-var runtm = setup()
-var objLogic = require('./objLogic.js')
+const express = require('express')
+const bodyParser = require('body-parser')
+const app = express()
+const cry = require('crypto')
+const db = require('./db.js')
+const runtm = setup()
+const objLogic = require('./lib/objLogic.js')//commit
+// const cron = require("node-cron");
 
 var parse = objLogic.parse
 var helperFunctions = objLogic.helperFunctions
 
 // var cookieParser = require('cookie-parser')
 //uninstall
-// app.use(cookieParser())
 
+// cron.schedule("59 23 * * *", function() {
+//   console.log("---------------------");
+
+// });
+
+function isEmpty(obj){
+  for(var prop in obj) {
+    if(obj.hasOwnProperty(prop)) {
+      return false;
+    }
+  }
+
+  return JSON.stringify(obj) === JSON.stringify({});
+}
 //to do declare current app
 function handlePost(req, res, userData,currentApp){
 
 
   var reqData = req.body
   console.log(reqData.type,JSON.stringify(reqData))
-  // var reqDataS = JSON.stringify(reqData.body)
-
-  // console.log(reqData.type,JSON.stringify(reqData.body).substr(0, 10)+'...')
 
   var qBody = ''
 
@@ -37,27 +48,7 @@ function handlePost(req, res, userData,currentApp){
 
   }  
 
-  switch(req.body.type.toLowerCase()) {
-    case'like':
-      break    
-    case'follow':
-
-      getUserIdFromCookie(userData.id).then(function(resolveData){
-        var sender = resolveData
-        var follow = new db.follow({
-          sender:sender,
-          receiver:req.body.receiver
-        })
-
-        follow.save(error=>{
-          if (!error) return
-          if (error.code = 11000) {
-              db.follow.deleteOne({sender:sender,receiver:req.body.receiver}, err=> err == undefined? console.log('deleted!') : console.log(err) )
-          }
-        })
-      })
-
-      break
+  switch(req.body.type.toLowerCase()){
     case'ad':
       break
     case'db':
@@ -71,40 +62,196 @@ function handlePost(req, res, userData,currentApp){
         if (err)  return res.send({error:err})
         var database = JSON.parse(info_main[0].DBs)
 
-        function parseScope(field,put){
+        function count(person,type){
+
+          var query = { sender:person, type:'follow'}
+          if (type === 'followers') query = { receiver:person, type:'follow'}
+
+          return new Promise(resolve => {
+
+            if (!prsedUserId){
+                console.log('parameter not available to getFollowerCount',person)
+                return resolve(0)
+            } 
+
+            db.action.countDocuments(query, function(err, info){
+              console.log('follow count: '+info)
+              resolve(info)
+            })
+
+          })
+        }
+
+        function followList(person,type){
+
+            var query = { sender:person, type:'follow'}
+            if (type === 'followers') query = { receiver:person, type:'follow'}
+
+            return new Promise((resolve)=>{
+              db.action.find(query,function(err, info_main){
+
+                resolve(info_main)
+
+              })
+            })
+        }
+
+        function parseScope(field,put,via){
             return new class extends helperFunctions{
               constructor(){
                 super()
                 this.field = field
                 this.put = put
+                this.via = via
                 this.user = userData
                 this.getFollowerCount = getFollowerCount
-                    //just count
-                    // random variable
-                    // date and time
+                this.random = random
+                this.read = this.read.bind(this)
+                this.write = this.write.bind(this)
+                this.update = this.update.bind(this)
+                this.erase = this.erase.bind(this)
+
               }
-              
 
               async write(par){
-                var queryOu = await handleQuery('write',par)  
+                var queryOu = await handleQuery('write',par,this.via)  
                 return queryOu
               }async read(par){
-                var queryOu = await handleQuery('read',par)
+                console.log(this.user)
+                var queryOu = await handleQuery('read',par,this.via)
                 return queryOu
               }async update(par){
-                 var queryOu = await handleQuery('update',par)
+
+                var queryOu = await handleQuery('update',par,this.via)
                 return queryOu
               }async erase(par){
-                var queryOu = await handleQuery('erase',par)
+                var queryOu = await handleQuery('erase',par,this.via)
                 return queryOu
+              }follow(obj){
+                var toFollow =  obj.person
+
+                if (!toFollow) return {error:'parameter error'}
+
+                return new Promise(resolve=>{
+
+                    var follow = new db.action({
+                      sender:userData.id,
+                      receiver:toFollow,
+                      type:'follow'
+                    })
+
+                    follow.save(error=>{
+
+                      if (!error) resolve( {status:'following', person:toFollow} )
+                      if(error.code = 11000) {
+                        db.follow.deleteOne({sender:userData.id, receiver:toFollow, type:'follow'}, err=> err == undefined? resolve( {status:'unfollowed', person:toFollow} ) : resolve(err) )
+                      }else{resolve(error)}
+
+                    })
+
+                })
+              }like(obj){
+                var contentId = obj.on
+
+                if (!contentId) return {error:'parameter error'}
+
+                return new Promise(resolve=>{
+
+
+                   db.vDb.findOne({_id:contentId}, function(err,objData) {
+
+                    var receiver = objData.writer//what if writer doesn't exist
+
+                    if (!receiver) return resolve({error:'author not found'})
+
+                    var follow = new db.action({
+                      sender:userData.id,
+                      reference:contentId,
+                      receiver:receiver,
+                      type:'follow'
+                    })
+
+                    follow.save(error=>{
+
+                      if (!error) resolve( {status:'following', person:toFollow} )
+                      if(error.code = 11000) {
+                        db.follow.deleteOne({sender:userData.id, reference:contentId, type:'follow'}, err=> err == undefined? resolve( {status:'unfollowed', person:toFollow} ) : resolve(err) )
+                      }else{resolve(error)}
+
+                    })
+
+                  })
+
+
+
+                })
+              }checkFollow(obj){
+                var person = obj.of
+
+                return new Promise(resolve=>{
+                  db.action.findOne({ sender:userData.id, receiver:person, type:'follow' },
+                    function(err, info_main){
+                      if (err) return resolve(err)
+                      isEmpty(info_main) === true? resolve(true):resolve(false)
+                    } 
+                  )
+                })
+              }checkLike(obj){
+                var contentId = obj.on
+
+                return new Promise(resolve=>{
+                  db.action.findOne({ sender:userData.id, reference:contentId, type: 'like' },function(err, info_main){
+                    if (err) return resolve(err)
+                    isEmpty(info_main) === true? resolve(true):resolve(false)
+                  })
+
+                })
+              }followings(obj){
+                var person = obj.of
+                return followList(person,'followings')
+              }followers(obj){
+                var person = obj.of
+                return followList(person,'followers')
+              }Countfollowings(obj){
+                var person = obj.of
+                return count(person,'following')
+              }Countfollowings(obj){
+                var person = obj.of
+                return count(person,'followers')
+              }Countlikes(obj){
+                var person = obj.on
+                var contentId = obj.for
+
+                var query = {type:'like'}
+
+                if (person) Object.assign(query,{receiver:person} )
+                if (contentId) Object.assign(query,{reference:contentId} )
+
+                return new Promise(resolve => {
+
+                    if (!prsedUserId){
+                        console.log('parameter not available to getFollowerCount',person)
+                        return resolve(0)
+                    } 
+
+                    db.action.countDocuments(query, function(err, info){
+                      console.log('follow count: '+info)
+                      resolve(info)
+                    })
+
+                })
               }
+
+
             }
         }
 
 
-        function handleQuery(type,par){
+        function handleQuery(type,par,via){
 
           return new Promise(resolve=>{
+
+
 
               var DBName = par.on
               var theDatabaseInfo = database[DBName]
@@ -120,13 +267,14 @@ function handlePost(req, res, userData,currentApp){
                 writeQuery = Object.assign(writeQuery,QQQ.put )
                 whereQuery = Object.assign(whereQuery,QQQ.where )
 
+                console.log('execute query')
                 executeQuery()
               })
 
               async function prepareQuery(put,where){
                 const newPut = await renameInput(par.put)
                 const newWhere = await renameInput(par.where)
-
+                console.log('preparing',par.where,newWhere)
                 return{put:newPut,where:newWhere}
               } 
 
@@ -183,14 +331,21 @@ function handlePost(req, res, userData,currentApp){
                 //why is field value not available to write, read and update parse: because it doesn't needs one it is only required for the permission parse as no one will say write $writer or read where $writer = user id they can just use the field name
 
                 var schemaObject = {}
-                if(!interfaceObject) return {}
+                // if(!interfaceObject) return {} //what error will it create
 
                 //to do: time will be also needed or maybe it should use date and time mongo type so that we can query older than ... 
                 var publicData = {}//available data for default value
                 publicData.user = userData
 
+                if(interfaceObject){
+                  if (interfaceObject['_id']) schemaObject['_id'] = interfaceObject['_id']
+                  if (interfaceObject['id']) schemaObject['_id'] = interfaceObject['id']
+                }
 
                 for(let key in relation){
+
+                  if(!interfaceObject) break
+
                   if (interfaceObject[key]){
                     schemaObject[ relation[key] ] = interfaceObject[key]
                   }else if(type === 'write'){
@@ -203,7 +358,6 @@ function handlePost(req, res, userData,currentApp){
                       try{
                         const parsedWriteObject = await parse(defaultValue, parseScope(null,par.put) )
                         schemaObject[ relation[key] ] = parsedWriteObject
-                        console.log(schemaObject,'$$$$$$$FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF$$$$$$$$$',parsedWriteObject)
                       }catch(err){
                         resolve({error:err})
                         console.error(err)
@@ -225,7 +379,14 @@ function handlePost(req, res, userData,currentApp){
                   schemaObject['unique'] = Math.random().toString(36).substring(2, 15)+Math.random().toString(36).substring(2, 15)
                 }
 
-                
+                if (!schemaObject['writer'] && type === 'write'){
+                  console.log(schemaObject,'#############')
+                  schemaObject['writer'] = userData.id
+                }
+
+
+                console.log(schemaObject,'writing default values')
+
                 return schemaObject
               }
 
@@ -251,6 +412,8 @@ function handlePost(req, res, userData,currentApp){
                     returnObject[ swappedRelation[key] ] = tobeoutputed[key]
                   }else if (key === 'id'){
                     returnObject['id'] = tobeoutputed[key]
+                  }else if (key === 'writer'){
+                    returnObject['writer'] = tobeoutputed[key]
                   }//exception for id
 
                 }
@@ -266,10 +429,15 @@ function handlePost(req, res, userData,currentApp){
       
                 //it will need to be asynchronous!
 
+                if(!theDatabaseInfo.permission)return onSuccess(true)
+
                 var permissionToDatabase = theDatabaseInfo.permission[type]
                 if(!permissionToDatabase)return onSuccess(true)
                 //could take time, what if permission doesn't exist
+                 console.log('engaging parse')
+
                parse(permissionToDatabase,PermissionRange).then(function(data){
+                  console.log('parsed')
                   if(data === true){
                     return onSuccess(true)
                   }else{
@@ -283,89 +451,119 @@ function handlePost(req, res, userData,currentApp){
                   })
               }
 
-              //to do:not necessary: async default value parse
+
               //to do: bug: undefined value makes the whole filterrow undefined
 
-              //fly js is messing up with peeer js
-              //slide chnage parameters need to be changed how it updates
-              function readHelper(info_read){
-                return new Promise(read_resolve=>{
+              function loopPremissionCheck(info_read,callback){
+   
+                if (info_read.length === 0) callback(info_read)
+                var filteredRows = []
+                let loopStep = 0
+                permissionLoopChecker()
 
-                    console.log(info_read)
+                function permissionLoopChecker(){
 
-                    if (info_read.length === 0) read_resolve(info_read)
+          
+                  function readAllowed(){
+                    filteredRows.push( renameOutput(info_read[loopStep]) )
+                    CheckEndOrIncrement()
+                  }
 
-                    var filteredRows = []
+                  function readNotAllowed(error_read){//break even if one of the row is out of scope
+                    return failure(error_read)
+                  }
 
-                    for (let i = 0; i<info_read.length;){
+                  function CheckEndOrIncrement(){
 
+                          loopStep++
+                          console.log(loopStep,info_read)
+                          if (loopStep >= info_read.length){
+                            return callback(filteredRows)
+                          }else{
+                            permissionLoopChecker()
+                          }
+                  }
 
-                        function readAllowed(){
-                          filteredRows.push( renameOutput(info_read[i]) )
-                          CheckEndOrIncrement()
-                        }
+                  checkPermission(info_read[loopStep],readAllowed,readNotAllowed)
 
-                        function readNotAllowed(error_read){
-                          console.log(error_read)
-                          CheckEndOrIncrement()
-                        }
+                        //if it is a dev environment provide a log file
+                        // function readNotAllowed(error_read){
+                        //   console.log(error_read,'readNotAllowed')
+                        //   CheckEndOrIncrement()
+                        // }
 
-                        function CheckEndOrIncrement(){
-                          console.log(i)
-                          i++
-                          if (i=== info_read.length) return read_resolve(filteredRows)
-                          //what I learned, i is increment before the return then the loop will go on forever because the i never crosed the condition
-                        }
-
-                        checkPermission(info_read[i],readAllowed,readNotAllowed)
-                    }
-
-                })
+                }
               }
 
-              function WritenUpdateFailure(failureData){
-
-                    return resolve({error:'permission denied',msg:failureData})
+              function failure(failureData){
+                  return resolve({error:'permission denied',errMsg:failureData})
               }
-
-              //for read loop through all rows and check if it has the permission
-              //for write there is no where command so proceed with input check
-              //update command first find the row check permission and then update the row by using id
 
               function executeQuery(){
                 switch(type.toLowerCase()){
                   case 'write':
-                    checkPermission(null,function(){
+
+                    function writeFunction(){
                       var vr_schema = new db.vDb(writeQuery)
                       vr_schema.save((error,writenObj)=>{
                         if (error) return resolve(error)
                         return resolve(renameOutput(writenObj))
                       })
-                    },WritenUpdateFailure)
+                    }
+
+                    if(via === 'action') return writeFunction()
+                    checkPermission(null,writeFunction,failure)
                     break
                   case 'update':
-                    db.vDb.findOne(whereQuery, function(err,obj) {
-                      //what if obj is empty
-
-                      if (Object.keys(obj).length === 0 && obj.constructor === Object) return resolve( {error:"can't find to update"} )
-
+                    db.vDb.find(whereQuery, function(err, info_read){
                       if (err) return resolve(err)
-                      checkPermission(obj,function(fc){
-                        console.log(obj,'updating',obj.unique)
-
-                        db.vDb.findOneAndUpdate({_id: obj.id},putQuery,{returnOriginal : false},function(error, doc){
-                          console.log(doc,'updated',error)
-                          if (error) return resolve(error)
-                          return resolve( renameOutput(doc) )
-                        })
-
-                      },WritenUpdateFailure)
+                      if(via === 'action') return loopUpdate(info_read)
+                      loopPremissionCheck(info_read,loopUpdate)
                     })
+
+                    async function loopUpdate(filteredRows){
+
+                        console.log('updating',whereQuery,filteredRows)
+                        if (filteredRows.length === 0 ) return resolve( {error:"permission denied"} )
+                        if (err) return resolve(err)
+                        var updatedRow = []
+                        for (let index of filteredRows){
+                          let updateRow = await listUpdate(index)
+                          updatedRow.push(updateRow)
+                        }
+
+                        resolve(updatedRow)                      
+                    }
+
+                    function listUpdate(obj){
+                      return new Promise(resolve=>{
+                          db.vDb.findOneAndUpdate({_id: obj.id},putQuery,{returnOriginal : false},function(error, doc){
+                            if (error) return resolve(error)
+                            return resolve( renameOutput(doc) )
+                          })
+
+                      })
+                    }
+
                     break
                   case 'read':
-                    db.vDb.find(whereQuery, function(error, info_read){
+                    // null, {sort: {date: 1}}
+                    let sortBy = {sort:{}, limit: 50}
+
+                    var sortAccordingTo = 'created_at'
+                    var sortType = 1
+                    var relationObject = relations()
+                    if (par.limit) sortBy.limit = par.limit
+                    if(par.sortBy && relationObject[par.sortBy]) sortAccordingTo = relationObject[par.sortBy]
+                    sortBy.sort[sortAccordingTo] = sortType
+
+                    console.log('sorting by..',sortBy)
+
+                    db.vDb.find(whereQuery,null,sortBy,function(error, info_read){
                       if (error) return resolve(error)
-                      readHelper(info_read).then((filteredRows)=>resolve(filteredRows))
+                      if(via === 'action') return resolve(info_read)
+
+                      loopPremissionCheck(info_read,resolve)
                     })
                     break
                   case 'erase':
@@ -377,10 +575,11 @@ function handlePost(req, res, userData,currentApp){
               }
 
 
+
           })
         }
 
-        parse(qBody,parseScope(null,null)).then(response=>{
+        parse(qBody,parseScope(null,null,'api')).then(response=>{
           console.log('success',response)
           res.send(response)
         }).catch(err => function(){
@@ -438,21 +637,22 @@ function handlePost(req, res, userData,currentApp){
       break
     case'new':
 
+      console.log(qBody.db)
       //error
-      qBody.law.db = JSON.stringify(qBody.law.db)
+      qBody.db = JSON.stringify(qBody.db)
 
 
 
       function updateDB(){
         db.law.findOneAndUpdate({ app:qBody.name },{
-            DBs:qBody.law.db},{new: true,runValidators: true }).then(msg=>{console.log('laws updated') })
+            DBs:qBody.db},{new: true,runValidators: true }).then(msg=>{console.log('laws updated') })
       }
 
       function saveDB(){
-        if(!qBody.law.db) return
+        if(!qBody.db) return
           var rule_save = new db.law({
             app:qBody.name,
-            DBs: qBody.law.db
+            DBs: qBody.db
           })
 
           rule_save.save(error=>{
@@ -511,7 +711,7 @@ function handlePost(req, res, userData,currentApp){
         
         if (error.code == 11000) db.chache.findOneAndUpdate({ url:qBody.url },{data:qBody.response},{new: true,runValidators: true },(error, doc) => {
           if (error) console.log(error)
-          console.log(doc,'Chache updated')
+          console.log('Chache updated')
         })
         
       }})
@@ -533,7 +733,6 @@ function handlePost(req, res, userData,currentApp){
       var app_n = req.body.app
       var fileName = app_n+req.body.file;
       var chached = null
-      console.log(fileName)
 
       if (oldpeer)deletePeer(oldpeer)
         
@@ -636,7 +835,7 @@ function getFollowerCount(prsedUserId){
         resolve(0)
     } 
 
-    db.follow.countDocuments({user:prsedUserId}, function(err, info){
+    db.action.countDocuments({receiver:prsedUserId,type:'follow'}, function(err, info){
       console.log('follow count: '+info)
       resolve(info)
     })
@@ -691,8 +890,12 @@ function deletePeer(id){
   })
 }
 
+function random(){
+  return Math.random().toString(36).substring(2, 15)+Math.random().toString(36).substring(2, 15)
+}
+
 function hash(data){
-  if(data == null) data = Math.random().toString(36).substring(2, 15)+Math.random().toString(36).substring(2, 15)
+  if(data == null) data = random()
   return cry.createHmac('sha256',data).digest('hex')
 }
 

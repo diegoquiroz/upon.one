@@ -4,23 +4,56 @@ global.Peer = require('peerjs-client')
 
 
 
-global.server = new class{//server on start
-    start(...arg){
+global.server = new class{
+    constructor(){
       this.info={}
       this.configuration={}
       this.files={}
+      this.db = {}
       this.request_callbacks={}
       this.listen_callbacks={}
       this.peer = null
-
+      this.hostedCallback = null
       this.loginCallback = null
+    }start(...arg){
 
       this.mode = arg[2].mode
       this.job = arg[2].job
+
       if (this.job == 'receive'){
         this.launch()
       }else{
-        this.go(arg)
+        this.job == 'host'
+        this.hostStatus = false
+
+        if ( arg[1].indexOf('.json') === -1) {
+          this.go(arg)
+        }else{
+
+          fetch(arg[1])
+          .then( r => r.text() )
+          .then( t => {
+
+            try{
+
+              var jsonFile = JSON.parse(t)
+              arg[1] = jsonFile[arg[0]]
+              console.log(t,jsonFile,arg[1])
+              if (!arg[1]) return console.log('cant find password')
+              this.go(arg)
+
+            }catch(e){
+              console.log(e)
+            }
+
+            // arg[1] = t[arg[0]]
+            //this.go(arg)
+            //
+          } )
+
+        }
+
+        
       }
     }api(query,functionR){
       //to do: remove response process json on post
@@ -55,44 +88,93 @@ global.server = new class{//server on start
           console.log(er,response)
         })
 
-    }
+      }
 
 
        )
 
       //on login error tell user to login and call the same function
-    }go(arg){
+    }async go(arg){
+
+
+
             this.configuration.password = arg[1]
             this.configuration.name = arg[0]
-            this.configuration.law = arg[2]
-            this.configuration.file = arg[2].fileName
-            
 
-            if (!this.configuration.file) this.configuration.file = '/index'
+            this.configuration.db = this.db
+            //make for index of to
+
+            // this.configuration.file = arg[3].fileName
+            
+            this.configuration.file = '/index'
 
             this.tmp = {}
 
             //html
             this.tmp.dom = this.stripScripts(document.body.innerHTML)
 
+
+            //link tags
+
+            this.tmp.link = []
+   
+            for(let index of document.querySelectorAll('link[rel="stylesheet"]') ){
+
+              let href = index.getAttribute('href')
+
+              console.log(href)
+
+              if( href.indexOf('http') === -1 ){
+                  var localFetch = await fetch(href)
+                  var localcssText = await localFetch.text()
+                  // console.log(localcssText)
+                  this.tmp.css == undefined? this.tmp.css = localcssText: this.tmp.css += localcssText
+              }else{
+                //to do: load on the receive end
+                this.tmp.link.push(href)
+              }
+
+
+            }
+
+
             //css
+            //to do link tags
             for(let index of document.getElementsByTagName('style') ){
               this.tmp.css == undefined? this.tmp.css = index.innerHTML : this.tmp.css += index.innerHTML
             }
 
-
             //js
-            window.onload = get_scriptTags.bind(this)
-            function get_scriptTags(){
-    
+
+            let scriptScrap = get_scriptTags.bind(this)
+
+            document.readyState === 'complete'? scriptScrap() : window.onload = scriptScrap
+
+          
+
+            async function get_scriptTags(){
+
                 var js_file = {loads:[],source:''};
                 var scriptfiles =  document.getElementsByTagName('script');
 
                 for(let index of scriptfiles){
-                  var src = index.src
+                  var src = index.getAttribute('src') || ''
                   var id_class = index.getAttribute('class') || ''
                   if( src.indexOf('serverination.js') == -1 && id_class.indexOf('private') == -1){
-                    src !== ""? js_file.loads.push(src) : js_file.source += index.innerHTML
+
+
+                    if(src === ""){
+                      js_file.source += index.innerHTML
+                    }else{
+
+                      if (src.indexOf('http') === -1) {//local file
+                        var localJsFetch = await fetch(src)
+                        var localJsText = await localJsFetch.text()
+                        js_file.source += localJsText
+
+                      }else{ js_file.loads.push(src) }
+
+                    } 
                   }
                 }
               
@@ -101,6 +183,7 @@ global.server = new class{//server on start
 
                 this.files[this.configuration.file] = this.tmp
                 this.launch()
+
             }
     }post(dataTobeSent,callback){
           let url = ''
@@ -124,7 +207,7 @@ global.server = new class{//server on start
                   if (data.code == 400) return console.log(data.msg)//error occured
                   this.print(this.info.serverUrl+"/"+this.configuration.name)
                   this.files['/index'] = this.tmp
-
+                  this.hostedCallback()
 
                   chache_hash()
 
@@ -135,6 +218,7 @@ global.server = new class{//server on start
             this.request('/index',this.newpage)
     }msg(data){
 
+      console.log(data,'message connection')
             if(data.type == 'request'){
 
               let cha = {url: data.url, response:this.files[data.url], type:'response'}
@@ -220,23 +304,24 @@ global.server = new class{//server on start
                 console.log('using peer:'+hosterId)
               }
 
-              this.peer.on('error', (data)=>{ this.request(url,callback,hosterId,data) })
+              this.peer.on('error', (data)=>{
+
+                console.log(data)
+               this.request(url,callback,hosterId,data) 
+             })
 
               if(hosterId) this.conn = this.peer.connect(hosterId)
 
               //SEND REQ
-              this.conn.on('open', function(){
+              this.conn.on('open', ()=>{
+                console.log('hey')
                 this.conn.send({url:url, type:'request'})
-                this.conn.on('data', function(data){ this.msg(data) })
+                this.conn.on('data', this.msg.bind(this) )
               })
 
             }))
     }launch(){
-      //set this.configuration name
-      //check the real one
-
-
-      if (window.location.protocol == 'https:' || window.location.protocol == 'http:') this.configuration.name = window.location.pathname.split('/')[1]
+      if (window.location.protocol == 'https:' || window.location.protocol == 'http:') this.configuration.name = window.location.pathname.split('/')[1].split('.')[0]
 
         if (this.mode == 'testing' || location.host == 'localhost:8080'){//environment difinition
           this.info.host = 'localhost'
@@ -249,11 +334,12 @@ global.server = new class{//server on start
          
           
         this.job == 'receive'? this.callback = this.receive.bind(this) : this.callback = this.host.bind(this)
-        // this.newPeer = this.newPeer.bind(this)
+
         this.newPeer(this.callback,()=>{
-          this.peer.on('connection', function(conn){
+          this.peer.on('connection', (conn)=>{
+            console.log('connection established',this)
             this.conn = conn;
-            this.conn.on('data', function(data){ this.msg(data) })
+            this.conn.on('data', this.msg.bind(this) )
           });
         })
     }stripScripts(s){
@@ -293,14 +379,31 @@ global.server = new class{//server on start
       //if already follow unfollow
       server.post({type:'follow',cookie:localStorage.getItem('hostea'),receiver:id },response => response.json().then(followData=>{
         notifyUser(followData)
-      }))
+      }))//switch to apis
     }getPerson(id){
     }onStartUp(newfn){
-     if(document.readyState === "complete") return newfn()
-          let pr = window.onload
-          window.onload = function(){
-            if (pr) pr()
-            newfn()
+
+      if(this.job == 'receive'){
+         if(document.readyState === "complete") return newfn()
+            let pr = window.onload
+            window.onload = function(){
+                if (pr) pr()
+                newfn()
+            }
+      }else{
+        //status hosted
+
+        if(this.hostStatus == true){
+          newfn()
+        }else{
+          let pr = this.hostedCallback
+          this.hostedCallback = function(){
+              if (pr) pr()
+              newfn()
+          }
+        }
+
+        
       }
     }login(event){
 
