@@ -297,6 +297,10 @@ global.server = new class{
               let hosterId = hoster.id
               let hoster_chache = hoster.chache
 
+              if (!hoster) return console.log(hoster)
+
+              console.log(hoster)
+            
               if (hoster_chache){
                 console.log('using chache')
                 return this.msg( {url: url, response:JSON.parse(hoster_chache), type:'response'}  )
