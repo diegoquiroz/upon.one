@@ -741,14 +741,17 @@ function handlePost(req, res, userData,currentApp){
         db.peers.find({files:fileName} , function(err_o, info_o){
           if (err_o){
             console.log(err_o)
-            sendSavedChache()
+            return sendSavedChache()
           }
 
-          function sendSavedChache(){
+          function sendSavedChache(){//find one
             db.chache.find( {url:fileName} , function(err_o, info_o){
+              console.log(err_o,info_o)
+              if (err_o) return console.log(err_o)
               if(info_o[0]) chached = info_o[0].data
               res.send( { chache:chached } )
               savePeer(pid,fileName)
+
              })            
           }
 
