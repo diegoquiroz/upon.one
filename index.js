@@ -739,15 +739,24 @@ function handlePost(req, res, userData,currentApp){
       //push peer on data received (chache fallback makes it very less likely)
       //fix indention from sublime text
         db.peers.find({files:fileName} , function(err_o, info_o){
-          if(info_o.length !== 0 && oldpeer == undefined){// if other peer exist
-            res.send( { id:info_o[info_o.length-1].peerId} )
-            savePeer(pid,fileName)
-          }else{// fallback
+          if (err_o){
+            console.log(err_o)
+            sendSavedChache()
+          }
+
+          function sendSavedChache(){
             db.chache.find( {url:fileName} , function(err_o, info_o){
               if(info_o[0]) chached = info_o[0].data
               res.send( { chache:chached } )
               savePeer(pid,fileName)
-             })
+             })            
+          }
+
+          if(info_o.length !== 0 && oldpeer == undefined){// if other peer exist
+            res.send( { id:info_o[info_o.length-1].peerId} )
+            savePeer(pid,fileName)
+          }else{// fallback
+            sendSavedChache()
           }
         })
 
