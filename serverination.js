@@ -294,13 +294,15 @@ global.server = new class{
           // let appName = 
           //a big exception to post request
           this.post({type:'peerFile',pid:this.configuration.peerid,oldpeer:oldpeer,app:this.configuration.name,file:url},response => response.json().then( hoster => {
+              
+              if (hoster.error) return document.body.innerHTML = hoster.error
               let hosterId = hoster.id
               let hoster_chache = hoster.chache
 
               if (!hoster) return console.log(hoster)
 
               console.log(hoster)
-            
+
               if (hoster_chache){
                 console.log('using chache')
                 return this.msg( {url: url, response:JSON.parse(hoster_chache), type:'response'}  )

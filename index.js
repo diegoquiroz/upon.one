@@ -747,6 +747,7 @@ function handlePost(req, res, userData,currentApp){
           function sendSavedChache(){//find one
             db.chache.find( {url:fileName} , function(err_o, info_o){
               console.log(err_o,info_o,fileName)
+              if(info_o.length == 0) return res.send( { error:'404 App not found' } )
               if (err_o) return console.log(err_o)
               if(info_o[0]) chached = info_o[0].data
               res.send( { chache:chached } )
