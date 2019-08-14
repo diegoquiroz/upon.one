@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "test": "nodemon index.js",
+    "test": "nodemon --inspect index.js",
     "watch": "watchify client/main.js -o serverination.js -v"
   },
   "author": "Arnav Singh",
@@ -13,6 +13,7 @@
   "dependencies": {
     "body-parser": "^1.19.0",
     "express": "^4.16.4",
+    "express-ws": "^4.0.0",
     "mongoose": "^5.5.8",
     "node-cron": "^2.0.3",
     "nodemon": "^1.19.0",

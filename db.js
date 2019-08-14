@@ -116,8 +116,8 @@ let lawSchema = new mongoose.Schema({
       required: true,
       unique: true,
     },
-  DBs:String,
-  cron:String
+  DBs:String
+
 
 })
 

@@ -2,7 +2,8 @@
 (function (global){
 global.Peer = require('peerjs-client')
 
-
+// to do make notify user shadow dom as well 
+//to do send socket on connect and type in ws
 
 global.server = new class{
     constructor(){
@@ -12,10 +13,23 @@ global.server = new class{
       this.db = {}
       this.request_callbacks={}
       this.listen_callbacks={}
+      this.socket = {}
+
+      this.api = this.api.bind(this)
+
+      this.socketFunctions = {query:{},room:{}}
+
       this.peer = null
       this.hostedCallback = null
       this.loginCallback = null
+      
     }start(...arg){
+
+      if (!arg[2]) {
+        arg[2] = {job:'host',mode:'production'}
+      }
+
+      Object.assign(this.configuration,arg[2])
 
       this.mode = arg[2].mode
       this.job = arg[2].job
@@ -60,10 +74,13 @@ global.server = new class{
       this.post({  name:this.configuration.name, data:query,type:'db',cookie:localStorage.getItem("hostea") }, response => {
 
         function receivedAPIdata(apiData){
+
             if(apiData.error === 'Login required'){
-            server.loginCallback = functionR
-            server.loginParameter = query
-            server.loginUI()
+            server.loginUI().then(()=>{
+
+                server.api(query,functionR)
+
+            })
             return
           } 
 
@@ -218,13 +235,30 @@ global.server = new class{
             this.request('/index',this.newpage)
     }msg(data){
 
-      console.log(data,'message connection')
+      
+
             if(data.type == 'request'){
 
+              
               let cha = {url: data.url, response:this.files[data.url], type:'response'}
-              this.conn.send(cha)
+              console.log(data,'sending response data')
+              // server.conn.send({ url:'/index', type:'I love you'})
 
+              console.log(this.conn)
+
+              setTimeout( ()=>{
+                console.log('sending data',this.conn)
+                this.conn.send(cha)
+              }, 0 )
+
+              // this.conn.send(cha)
+
+              // this.conn.send(cha)
+              // server.conn.send({ url:'/index', type:'do you love you'})
             }else{//if it is a response
+
+              if (this.files[data.url]) return console.log('file already exist')
+              console.log(data,'receiving a file')
               let call = this.request_callbacks[data.url]
               call(data.response)
               this.files[data.url] = data.response
@@ -301,13 +335,18 @@ global.server = new class{
 
               if (!hoster) return console.log(hoster)
 
-              console.log(hoster)
-
               if (hoster_chache){
                 console.log('using chache')
                 return this.msg( {url: url, response:JSON.parse(hoster_chache), type:'response'}  )
               }else{
                 console.log('using peer:'+hosterId)
+
+                setTimeout( ()=>{
+                  if ( !this.files[url] ) {
+                    this.request(url,callback,hosterId,{message:'webrtc connection timeout'}) 
+                    console.log('falling back on secure server chache')
+                  }
+                },3000)
               }
 
               this.peer.on('error', (data)=>{
@@ -320,14 +359,16 @@ global.server = new class{
 
               //SEND REQ
               this.conn.on('open', ()=>{
-                console.log('hey')
+                console.log('asking for peer file')
                 this.conn.send({url:url, type:'request'})
-                this.conn.on('data', this.msg.bind(this) )
+                this.conn.on( 'data', this.msg.bind(this) )
               })
 
             }))
     }launch(){
       if (window.location.protocol == 'https:' || window.location.protocol == 'http:') this.configuration.name = window.location.pathname.split('/')[1].split('.')[0]
+
+        if (!this.configuration.name) this.configuration.name = 'home'
 
         if (this.mode == 'testing' || location.host == 'localhost:8080'){//environment difinition
           this.info.host = 'localhost'
@@ -343,9 +384,11 @@ global.server = new class{
 
         this.newPeer(this.callback,()=>{
           this.peer.on('connection', (conn)=>{
+
             console.log('connection established',this)
             this.conn = conn;
             this.conn.on('data', this.msg.bind(this) )
+
           });
         })
     }stripScripts(s){
@@ -360,8 +403,8 @@ global.server = new class{
     }newPeer(...callback){
 
       this.peer = new Peer({
-          host: this.info.host,
-          port: this.info.port,
+          host: 'devpoop.herokuapp.com',
+          port: 80,
           path: '/peerjs'
       })
 
@@ -411,63 +454,253 @@ global.server = new class{
 
         
       }
+    }random(){
+      return Math.random().toString(36).substring(2, 15)+Math.random().toString(36).substring(2, 15)
+    }killSocket(type){
+      server.socket[type].close();
+      server.socket[type] = null
+    }callSocketFunction(msg,type){
+
+      //to de return type as well
+      
+      msg = JSON.parse(msg)
+      console.log(msg)
+
+      let functionTobeCalled = server.socketFunctions[type][msg.token]
+      if (!functionTobeCalled) return console.log(' not caught')
+      if (!functionTobeCalled[msg.type]) return console.log(msg.type+' not caught')
+      functionTobeCalled = functionTobeCalled[msg.type]
+      functionTobeCalled(msg.data,msg)
+
+    }setupSocket(query,type,receptionObject){
+
+      server.socket[type] = new WebSocket('ws://'+this.info.host+':'+this.info.port+'/'+type)
+      server.socket[type].onopen = function (event){
+
+        server.socket[type].onmessage = function (event){
+          server.callSocketFunction(event.data,type)
+          if(JSON.parse(event.data).unique) receptionObject.unique = JSON.parse(event.data).unique
+        }
+        server.newSocketJob(query,type,receptionObject)
+      };
+
+      return receptionObject
+
+    }newSocketJob(msg,type,receptionObject){
+
+        function broadcast(data){
+          if (!this.unique) return console.log('Unique not assigned')
+          server.socket.room.send( JSON.stringify( {app:server.configuration.name, purpose:'broadcast', content:data, token:this.id, broadcastToken:this.unique  } ) )
+        }
+
+        function update(query){
+          //server side handle if query is null
+          if (!server.socket.query) return 'socket not instantiated'
+          server.socket.query.send( JSON.stringify( {query:query,updateToken:this.id} ) )
+        }
+
+        function on(type,callback){
+          this['on'+type] = callback
+        }
+
+      if(!receptionObject) receptionObject = new class{  
+        constructor(){
+          this.id = msg.token
+          if(type === 'room') this.broadcast = broadcast.bind(this)
+          this.on = on.bind(this)
+          if (type == 'query') this.update = update.bind(this)
+        }
+
+
+    }
+
+      if(!server.socket[type]) return server.setupSocket(msg,type,receptionObject)
+      
+      server.socketFunctions[type][msg.token] = receptionObject
+      
+      msg.app = server.configuration.name
+      msg.cookie = localStorage.getItem('hostea')
+
+      console.log('sending..',msg)
+      server.socket[type].send( JSON.stringify(msg) );
+      
+      return receptionObject
+
+    }async live(query){
+
+      // full plan make login ui a promise and await for login by live and room, make it a prmise (will returning happen to work fine)
+
+
+      //second parameter is generally a callback
+      //decalre s socket
+      //update token, callback
+      if (!localStorage.getItem('hostea') ) await server.loginUI(  )
+
+      query = {token:server.random() ,query:query}
+      return server.newSocketJob(query,'query')
+
+    }async room(query){
+     
+     //make server login ui a promise
+      if (!localStorage.getItem('hostea') ) await server.loginUI( )
+
+      if (typeof query !== 'object') query = {limit:2,token:query}
+      query.purpose = 'join'
+      return server.newSocketJob(query,'room')
+
     }login(event){
 
-      server.cred = {}
-      var loginParent = event.target.parentNode
-      var value_array = event.target.parentNode.getElementsByTagName('input')
+      
+
+      return new Promise( (resolve)=>{
+
+        
+
+        server.cred = {}
+        var loginParent = event.target.parentNode
+        var value_array = event.target.parentNode.getElementsByTagName('input')
 
 
-      for(let index of value_array){
-        server.cred[index.name] = index.value
-      }
+        for(let index of value_array){
+          server.cred[index.name] = index.value
+        }
 
-      if (event.key == 'Enter') {
+       
 
 
         fetch( server.info.serverUrl , { method: 'POST',headers: {"Content-type": "application/x-www-form-urlencoded; charset=UTF-8"},
-                  body: 'data='+JSON.stringify(server.cred)+'&type=knock' }).then(function(response){
+                    body: 'data='+JSON.stringify(server.cred)+'&type=knock' }).then(function(response){
 
-                    if (response.code == 400 ){
-                      return console.log('wrong password')
-                    }
+                      if (response.code == 400 ){
+                        return console.log('wrong password')
+                      }
 
-                    //why this is not available here, cause it is being called from function
-                    function openDoor(data){
-                      localStorage.setItem("hostea", data)
-                      loginParent.parentNode.removeChild(loginParent)
-                      server.api(server.loginParameter,server.loginCallback)
-                    }
+                      //why this is not available here, cause it is being called from function
+                      function openDoor(data){
+                        localStorage.setItem("hostea", data)
+                        if(document.querySelector('login-ui') ) document.body.removeChild( document.querySelector('login-ui') )
+                        return resolve( data )
+                        //take this code to login ui
+                      }
 
-                    response.json().then( (data)=>{
-                      data.code == 200? openDoor(data.msg) : console.error(data.msg)
-                    })
+                      response.json().then( (data)=>{
+                        data.code == 200? openDoor(data.msg) :  resolve( {error: data.msg} )
+                      })
 
-                  } )
-      }
+          })
+        
+      })
     }loginUI(){
-      var html = `
-            <div id='loginUI' style='
-                position: absolute;
-                height: 100%;
-                width: 100%;
-                top: 0;
-                left: 0;'>
-            <input type="text" name="username" placeholder="username">
-            <input type="password" name="password" onKeyup="server.login(event)" placeholder="password" >
 
-            </div>
-            `
-      var loginUiHolder = document.createElement('template')
-      loginUiHolder.innerHTML = html
+      // console.log('asc')
+      //what happens when you return in then 
 
-      console.log(  loginUiHolder.content.querySelector("div") )
-      document.body.appendChild(  document.importNode(loginUiHolder.content.querySelector("div") , true) )
+
+      return new Promise((resolveLogin)=>{
+
+        var html = `
+
+              <style>
+
+                div#loginUI {
+                    background: #000000d6;
+                    padding-top: 5vw;
+                    position: absolute;
+                    height: 100%;
+                    width: 100%;
+                    top: 0;
+                    left: 0;
+                }
+
+                #loginUI input {
+                  width: 62%;
+                  margin-left: 18%;
+                  margin-top: 5%;
+                  height: 5vh;
+                  font-size: 2vw;
+                  text-align: center;
+                  color: #222;
+                  border: none;
+                  padding: 2vw 0;
+                  border-radius: 0.5vw;
+                  /* border-bottom: 0.5vw solid #fff; */
+                  /* background: transparent; */
+              }
+
+              </style>
+
+              <div id='loginUI' style='
+                  position: absolute;
+                  height: 100%;
+                  width: 100%;
+                  top: 0;
+                  left: 0;'>
+              <input type="text" name="username" placeholder="username">
+              <input type="password" name="password" placeholder="password" >
+
+              </div>
+              `
+        
+
+        //to remember if two source are trying to do something that will require login, two event listener will be set to the input box
+        if (!document.querySelector('login-ui')){
+
+
+          const template = document.createElement('template');
+          template.innerHTML = html;
+
+          class loginInterface extends HTMLElement {
+  
+            constructor() {
+              super();
+              this.attachShadow({mode: 'open'});
+              this.shadowRoot.appendChild(template.content.cloneNode(true));
+              // const button = this.shadowRoot.querySelector("button");
+              // button.addEventListener("click", this.handleClick);
+            }
+            
+            handleClick(e) {
+              alert("Sup?");
+            }
+            
+          }
+
+          window.customElements.define('login-ui', loginInterface);
+
+          var loginUiHolder = document.createElement('template')
+          loginUiHolder.innerHTML = html
+          document.body.appendChild(  document.createElement('login-ui') )
+
+        }
+ 
+        // shadowRoot
+
+        //learned event listener parameter has no capatilization
+        document.querySelector('login-ui').shadowRoot.querySelector('#loginUI input[type="password"]').addEventListener('keyup', function(event){
+
+          console.log('hey pressed')
+          if (event.key !== 'Enter') return 
+
+
+          server.login(event).then( (data)=>{
+
+            if (data.error) return console.log(data)
+
+            resolveLogin(data)
+
+          })
+
+        })
+
+      })
     }notifyUser(message){
       var html = `<h3 class='notifyUser' style='
                       position:absolute; 
+                      color:#fff;
+                      background:#111;
                       width:50%; 
                       left:25%; 
+                      text-align:center;
                       top:25%;'
                       ></h3>`
 
@@ -489,6 +722,8 @@ global.server = new class{
         if (!a.parentNode) return
         a.parentNode.removeChild(a)
       },9000 )
+    }search(words,callback,type){
+      if (!type) type = 'global'
     }
 }
 //to do test notifyUser
@@ -505,6 +740,8 @@ let ScTag = document.getElementsByClassName('hostea')[0]
 
 
   
+
+//server.live( {on:'answers',where:{} } ,console.log )    
 
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
