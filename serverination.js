@@ -866,6 +866,16 @@ global.server = new class{
       localStorage.removeItem('user')
       localStorage.removeItem('hostea')
       location.reload();
+    }search(query,type){
+
+      return new Promise(resolve=>{
+
+        server.post({type:'search',data:{  query:query, type:type } },data=>{
+          resolve(data)
+        })
+
+      })
+
     }signUp(){
       return new Promise(resolve=>{
 
@@ -1268,8 +1278,6 @@ global.server = new class{
 
 
 
-    }search(words,callback,type){
-      if (!type) type = 'global'
     }chargeWallet(callback){//to do notify user prompt user
 
       //load paypal

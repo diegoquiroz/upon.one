@@ -244,21 +244,13 @@ app.post('/upload',upload,(req, res) =>{
 
 })
 
+//how to add a parameters to search
+
 app.post('/',(req, res) =>{
 
-  function srh(query){
-    let search_config = {'$text': {'$search': query} }
-    query == null? search_config = {}:null
-    db.apps.find(search_config).limit(10).exec(function(err, info){
-      data = []
-      for(index of info){ data.push( {name:index.name} ) }
-      res.send( data ) 
-    })
-  }
 
-  if (req.body.type === 'search'){//set default app name
-    srh(req.body.app) //change app to search query (var name on front end)
-  }else if (req.body.cookie){
+
+  if (req.body.cookie){
     getUserData( req.body.cookie ).then(function(userObject,error){
       // console.log(userObject, req.body.cookie)
       // console.log(userObject)
@@ -2599,7 +2591,7 @@ function handlePost(req, res, userData,userMeta){
 
           if (qBody.cron){
 
-            // console.log('adding cron',qBody.cron)//###
+
 
             let tasksPutValues = {}
 
@@ -2799,6 +2791,38 @@ function handlePost(req, res, userData,userMeta){
       break
     case'getSavedChache':
       sendSavedChache( qBody.app+'/index', (data)=>{res.send(data) } )
+      break
+    case'search':
+      let query = qBody.query
+      let type = qBody.type
+      let search_config = {'$text': {'$search': query} }
+
+      if(!query) search_config = {} 
+
+
+      if(type === 'sites'){
+
+        db.scrap.find(search_config).limit(10).exec((error, info_read)=>{
+
+          if(error) return res.send({error:info_read})
+          res.send(info_read)
+
+        })
+
+      }else{
+
+          
+        db.apps.find(search_config).limit(10).exec(function(err, info){
+          data = []
+          for(index of info){ data.push( {name:index.name} ) }
+
+          res.send( data ) 
+        })
+  
+
+      }
+
+
       break
     case'scrap':
       let heading = qBody.heading

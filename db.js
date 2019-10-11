@@ -61,7 +61,7 @@ let scrap = new mongoose.Schema({
   heading:String,
   text:String,
   html:String,
-  head:String,
+  head:String
 })
 
 scrap.index({heading: 'text', text: 'text'});
