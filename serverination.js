@@ -580,7 +580,7 @@ global.server = new class{
 
 
       // console.log(url,dataTobeSent)
-      fetch( this.info.serverUrl,{method:'POST',mode: 'no-cors',headers:{"Content-type":"application/x-www-form-urlencoded; charset=UTF-8"},body: url }).then(response=>{
+      fetch( this.info.serverUrl,{method:'POST',headers:{"Content-type":"application/x-www-form-urlencoded; charset=UTF-8"},body: url }).then(response=>{
 
               response.json().then(postData=>{
 
