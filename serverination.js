@@ -63,7 +63,7 @@ global.server = new class{
           this.info.host = 'localhost'
           this.info.port = 8080
         }else{
-          this.info.host = 'upon.one'
+          this.info.host = 'www.upon.one'
           this.info.port = 80
         }
         this.info.serverUrl = 'http://'+this.info.host+':'+this.info.port
