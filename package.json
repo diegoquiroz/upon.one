@@ -11,15 +11,17 @@
   "author": "Arnav Singh",
   "license": "ISC",
   "dependencies": {
+    "@paypal/checkout-server-sdk": "^1.0.1",
+    "@sendgrid/mail": "^6.4.0",
     "body-parser": "^1.19.0",
+    "dotenv": "^8.1.0",
     "express": "^4.16.4",
     "express-ws": "^4.0.0",
     "mongoose": "^5.5.8",
+    "multer": "^1.4.2",
     "node-cron": "^2.0.3",
     "nodemon": "^1.19.0",
     "peer": "^0.2.10",
-    "peerjs-client": "^0.3.15",
-    "socket.io": "^2.2.0",
-    "socket.io-client": "^2.2.0"
+    "peerjs-client": "^0.3.15"
   }
 }

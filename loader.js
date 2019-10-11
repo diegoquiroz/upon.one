@@ -59,4 +59,16 @@ let loader = {
 
 document.body.onload = loader.init
 
+window.addEventListener( "message",
+  function (e) {
+        if(e.origin !== 'http://upon.one' && e.origin !== 'localhost:8080'){ return; } 
+        // alert(e.data);
+        console.log('post message received')
+        localstorage.setItem('hostea',e.data)
+  },
+  false);
+//send message from iframe window
+
+// top.postMessage('hello', 'A');
+
 //if logo exist
