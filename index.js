@@ -60,6 +60,7 @@ app.get('*', (req, res) => {
   function sendJS(file_name){
     res.set('Content-Type','application/javascript',)
     res.sendFile( __dirname + "/" + file_name )
+    console.log(__dirname,file_name)
   }
 
   function sendFile(fileName){
@@ -100,6 +101,8 @@ app.get('*', (req, res) => {
     sendJS('lib/telepathy.js')
   }else if(path === 'objlogic.js'){
     sendJS('lib/objlogic.js')
+  }else if(sub === 'source'){
+    sendJS('serverination.js')
   }else if(sub === 'cdn'){
     let fileName = path.replace('/','')
 
@@ -120,7 +123,6 @@ app.get('*', (req, res) => {
       let html = ` <head> ${result.head} <title> ${sub}:${result.heading} </title> </head> <body> ${result.html} </body> `
       res.send(html)
     })
-
   }else{
     frameHtml(res,sub)
   }
