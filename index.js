@@ -805,7 +805,7 @@ function sendToSocket(next){
 
   // console.log('data before removing',data)
 
-  data = renameOutput(data,dataFormat.memoryAllocation,'|-'+data.dbName+'-|')
+  data = renameOutput(data,dataFormat.memoryAllocation,addUniquePrefix(data.dbName))
   
   // console.log('data after removing',data)
 
@@ -840,7 +840,7 @@ function sendToSocket(next){
       }
 
 
-      console.log('matching',clients[clientId].token[token].where,data ,clients[clientId].user,'checkPermission2',matchQuery(clients[clientId].token[token].where , data ,'and'))
+      // console.log('matching',clients[clientId].token[token].where,data ,clients[clientId].user,'checkPermission2',matchQuery(clients[clientId].token[token].where , data ,'and'))
 
       if (matchQuery(clients[clientId].token[token].where , data ,'and') === true){
      
@@ -1162,11 +1162,22 @@ function handleParse(prop,range){
 
                         // console.log(index,'senderData')
 
+
+                        //to do remove reference and make a split -|
+
+                        let referenceUnique = index.reference.split(':')
+                        let referenceDb = index.reference[0]
+
+                        referenceDb = referenceDb.split('_')[1] //to do documet format appname_dbname:unique
+
+                        referenceUnique = referenceUnique[1]
+                        
+
                         newIndex.push({
 
                           type:index.type,
                           sender:{id:senderData.id, username:senderData.username, profile:senderData.profile},
-                          reference:index.reference,
+                          reference:{unique:referenceUnique, db:referenceDb},
                           official:index.official,
                           message:index.message,
                           created_at:index.created_at
@@ -1207,18 +1218,32 @@ function handleParse(prop,range){
                 return queryOu
               }async follow(toFollow,range,contentId){
 
-                if (typeof toFollow === 'object' || typeof toFollow === 'arrray') throw Error('wrong input for follow '+typeof toFollow)
+                if (typeof toFollow === 'object' || typeof toFollow === 'array') throw Error('wrong input for follow '+typeof toFollow)
                 //to do abstract follow and like as the same
-                return await followOrLike(toFollow,'follow',range.global.app)
-              }async like(contentId,range){
-                // var contentId = typeof obj === 'object' ? obj.on : obj 
 
-                if (typeof contentId === 'object' || typeof contentId === 'arrray') throw Error('wrong input for like '+typeof contentId)
+                try{
+                  return await followOrLike(toFollow,'follow',range.global.app)
+                }catch(error){
+                  throw Error(error.message )
+                }
+                
+              }async like(content,range){
 
 
-                if (!contentId) throw Error('parameter error on like function'+JSON.stringify(obj) )
 
-                return await followOrLike(contentId,'like',range.global.app)
+                let contentId = content.unique
+                let dbName = content.db
+
+                if (typeof contentId === 'object' || typeof contentId === 'array') throw Error('wrong input for like '+typeof contentId)
+                if (!contentId || !dbName) throw Error('parameter error on like function: '+JSON.stringify(content) )
+
+                try{
+                  contentId = addUniquePrefix(range.global.app+'_'+dbName, contentId)
+                  return await followOrLike(contentId,'like',range.global.app)
+                }catch(error){
+                  throw Error(error.message )
+                }         
+                
               }checkFollow(person){
                 // var person = typeof obj === 'object' ? obj.of : obj 
 
@@ -1239,11 +1264,15 @@ function handleParse(prop,range){
                     } 
                   )
                 })
-              }checkLike(contentId){
+              }checkLike(content,range){
                 // var contentId = typeof obj === 'object' ? obj.on : obj 
 
                 return new Promise(resolve=>{
 
+
+                  let contentId = content.unique
+                  let dbName = content.db
+                  contentId = addUniquePrefix(range.global.app+'_'+dbName,contentId)
                   //yes userdata
                   let actionId = 'like:'+userData.id+':'+contentId
 
@@ -1270,8 +1299,11 @@ function handleParse(prop,range){
               }countFollowers(person){
                 // var person = obj.of
                 return count(person,'followers')
-              }countLikes(contentId){ //make it small
+              }countLikes(content){ //make it small
 
+                  let contentId = content.unique
+                  let dbName = content.db
+                  contentId = addUniquePrefix(range.global.app+'_'+dbName, contentId)
                 
                 // var contentId = obj.on
                 if (!contentId) throw Error('of parameter undefined on $countlikes')
@@ -1293,11 +1325,11 @@ function handleParse(prop,range){
   }
 
 
-  function followOrLike(id,type,app){
+  async function followOrLike(id,type,app){
 
-    return new Promise(resolve=>{
+      // console.log(app)
 
-      async function executeFollow(){
+      if (!id) throw Error('parameter error')
 
 
         let endPart = id//content id for like
@@ -1316,8 +1348,12 @@ function handleParse(prop,range){
         }else{
 
           contentId = id
+
+          //we need to add unique prefix
           let content = await db.vDb.findOne({unique:contentId})
 
+          //we need to find the writer to make a notification
+          console.log(contentId)
           if (!content) throw Error('invalid id of content')
           receiver = content.registered_writer_field//what if writer doesn't exist
           if (!receiver) throw Error('author not found') 
@@ -1326,51 +1362,53 @@ function handleParse(prop,range){
 
 
       
+        function executeSave(){
+          return new Promise(resolve=>{
+             let actionId = type+':'+userData.id+':'+endPart
 
-        let actionId = type+':'+userData.id+':'+endPart
+            var act = new db.action({
+              sender:userData.id,
+              receiver:receiver,
+              type:type,
+              actionId:actionId,
+              app:app,
+              reference:contentId,
+            })
 
-        var act = new db.action({
-          sender:userData.id,
-          receiver:receiver,
-          type:type,
-          actionId:actionId,
-          app:app,
-          reference:contentId,
-        })
+            act.save(error=>{
 
-        act.save(error=>{
+              if (!error) return resolve( {status:true, id:id, type:type} )//following
 
-          if (!error) return resolve( {status:true, id:id, type:type} )//following
+              if(error) {
+                
+                if(error.code = 11000){
 
-          if(error) {
-            
-            if(error.code = 11000){
+                  db.action.deleteOne({actionId:actionId},
+                   err=> {
 
-              db.action.deleteOne({actionId:actionId},
-               err=> {
+                    if (err) return resolve({error:err})
 
-                if (err) return resolve({error:err})
+                    resolve( {status:false, id:id, type:type} ) //unfollowed
 
-                resolve( {status:false, id:id, type:type} ) //unfollowed
+                   } 
 
-               } 
+                   )
+                }else{
+                  console.log(error)
+                }
 
-               )
-            }else{
-              console.log(error)
-            }
+                
+              }
+            })
+                   
+          })
+        }
 
-            
-          }
-        })
-      }
 
-      
-      if (!id) throw Error('parameter error')
-      
-      executeFollow()
+        let savedResult = await executeSave()
 
-    })
+        return savedResult
+
   }
 
   //before following or liking check if recever id is given and use @convention
@@ -1403,7 +1441,7 @@ function handleParse(prop,range){
 
               // console.log('processing query')//appname doesn't exist
               let fullDbName = appName+'_'+DBName
-              let uniquePrefix = '|-'+fullDbName+'-|'
+              let uniquePrefix = addUniquePrefix(fullDbName)
 
 
               var relation = theDatabaseInfo.memoryAllocation
@@ -1523,12 +1561,9 @@ function handleParse(prop,range){
                 if(schemaObject['unique']){
 
                   let valueUnique = schemaObject['unique']
-                  if( valueUnique.indexOf(uniquePrefix) !== -1 ) throw Error('not permitted unique value'+valueUnique)
+                  if( valueUnique.indexOf(uniquePrefix) !== -1 ) throw Error('not permitted unique value: '+valueUnique)
 
-                  schemaObject['unique'] = uniquePrefix+schemaObject['unique']
-
-
-
+                  schemaObject['unique'] = addUniquePrefix(fullDbName,schemaObject['unique'])
                 }
 
                 if (type === 'write' && !internallyCalled){
@@ -1906,7 +1941,7 @@ function handlePost(req, res, userData,userMeta){
       if (!userData)  return sendApiData({error:'Login required'})
       var appName = req.body.name
 
-      console.log(qBody,appName)
+      // console.log(qBody,appName)
 
       db.law.findOne({app:appName},function(err, info_main){
 
@@ -2773,6 +2808,8 @@ function handlePost(req, res, userData,userMeta){
       // to do: version update: whenever apps are updated remove all peers!
     case'chache_hash':
       // save index file
+
+      //to do check password
       qBody.url = JSON.parse(req.body.configuration).name+qBody.url
      
 
@@ -3049,7 +3086,7 @@ function renameOutput(tobeoutputed,relation,uniquePrefix){
                 let theUniqueField = swappedRelation['unique'] 
 
                 // console.log(swappedRelation,theUniqueField , returnObject[ theUniqueField],'renaming output')
-
+                console.log('uniquePrefix',uniquePrefix)
                 if( returnObject[ theUniqueField] ){
                   
                   returnObject[ theUniqueField] = returnObject[ theUniqueField].replace(uniquePrefix,'')
@@ -3093,6 +3130,13 @@ function frameHtml(res,domain){
   
   
 
+}
+
+function addUniquePrefix(fullDbName,unique){
+
+  if (!unique) unique = ''
+
+  return fullDbName+':'+unique
 }
 
 function stringIt(json){

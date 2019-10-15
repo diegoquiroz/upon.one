@@ -1826,7 +1826,7 @@ global.server = new class{
                   }
 
                   #fields input,#fields textarea, #fields div{
-                    height:5vh;
+                    height:10vw;
                     font-size:4vw;
                   }
 
