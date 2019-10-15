@@ -3071,7 +3071,14 @@ function frameHtml(res,domain){
         // if (err) return console.log(err)
 
         // let hash = info.hash
-        let fullHTML =  `<html> <head></head> <body></body>
+  let fullHTML=`<html> 
+                <head>
+                  <meta name="apple-mobile-web-app-capable" content="yes">
+                  <meta name="mobile-web-app-capable" content="yes">
+                  <meta name='viewport' content='width=device-width, initial-scale=1.0, user-scalable=0' >
+              </head> 
+
+        <body></body>
           <script class="hostea"  app_name="${domain}" mode="${runtm.type}" job="receive" src="${ lcUrl('loader.js') }">
           </script>
  
