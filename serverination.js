@@ -67,6 +67,7 @@ global.server = new class{
           this.info.host = 'upon.one'
           this.info.port = 80
         }
+
         this.info.serverUrl = 'http://'+this.info.host+':'+this.info.port
 
         if(this.info.port === 80) this.info.serverUrl = 'http://www.'+this.info.host+':'+this.info.port
@@ -447,7 +448,7 @@ global.server = new class{
                 for(let index of scriptfiles){
                   var src = index.getAttribute('src') || ''
                   var id_class = index.getAttribute('class') || ''
-                  if( src.indexOf('serverination.js') == -1 && id_class.indexOf('private') == -1){
+                  if( src.indexOf('serverination.js') === -1 && id_class.indexOf('private') === -1 && src.indexOf('source.upon.one') === -1){
 
 
                     if(src === ""){
