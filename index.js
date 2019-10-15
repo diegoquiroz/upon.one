@@ -60,7 +60,7 @@ app.get('*', (req, res) => {
   function sendJS(file_name){
     res.set('Content-Type','application/javascript',)
     res.sendFile( __dirname + "/" + file_name )
-    console.log(__dirname,file_name)
+    // console.log(__dirname,file_name)
   }
 
   function sendFile(fileName){
@@ -1299,7 +1299,7 @@ function handleParse(prop,range){
               }countFollowers(person){
                 // var person = obj.of
                 return count(person,'followers')
-              }countLikes(content){ //make it small
+              }countLikes(content,range){ //make it small
 
                   let contentId = content.unique
                   let dbName = content.db
@@ -1312,7 +1312,7 @@ function handleParse(prop,range){
                 return new Promise(resolve => {
 
                     db.action.countDocuments({type:'like',reference:contentId}, function(err, info){
-                      // console.log('like count: '+info)
+                   
                       if (!info) return resolve(0)
                       resolve(info)
                     })
@@ -1353,7 +1353,7 @@ function handleParse(prop,range){
           let content = await db.vDb.findOne({unique:contentId})
 
           //we need to find the writer to make a notification
-          console.log(contentId)
+          // console.log(contentId)
           if (!content) throw Error('invalid id of content')
           receiver = content.registered_writer_field//what if writer doesn't exist
           if (!receiver) throw Error('author not found') 
@@ -2822,14 +2822,20 @@ function handlePost(req, res, userData,userMeta){
         data: qBody.response
       })
 
-      chache_save.save(error=> {if(error){
+      chache_save.save(error=> {
+
+          if(!error) return res.send({code:200})
+          
+          if (error.code == 11000) db.chache.findOneAndUpdate({ url:qBody.url },{data:qBody.response},{new: true,runValidators: true },(error, doc) => {
+            res.send({code:200})
+            if (error) console.log(error)
+            // console.log('Chache updated')
+          })
+          
         
-        if (error.code == 11000) db.chache.findOneAndUpdate({ url:qBody.url },{data:qBody.response},{new: true,runValidators: true },(error, doc) => {
-          if (error) console.log(error)
-          // console.log('Chache updated')
-        })
-        
-      }})
+    }
+
+      )
 
       break
     case'getSavedChache':
@@ -3086,7 +3092,7 @@ function renameOutput(tobeoutputed,relation,uniquePrefix){
                 let theUniqueField = swappedRelation['unique'] 
 
                 // console.log(swappedRelation,theUniqueField , returnObject[ theUniqueField],'renaming output')
-                console.log('uniquePrefix',uniquePrefix)
+                // console.log('uniquePrefix',uniquePrefix)
                 if( returnObject[ theUniqueField] ){
                   
                   returnObject[ theUniqueField] = returnObject[ theUniqueField].replace(uniquePrefix,'')
