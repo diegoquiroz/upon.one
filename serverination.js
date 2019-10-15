@@ -59,6 +59,7 @@ global.server = new class{
 
         if (!this.configuration.name || this.configuration.name === 'www') this.configuration.name = 'home'
 
+          //document either mode could be testing or local variable could be declared
         if (this.mode == 'testing' || location.host == 'localhost:8080' || this.local === true){//environment difinition
           this.info.host = 'localhost'
           this.info.port = 8080
@@ -248,11 +249,11 @@ global.server = new class{
 
 
 
-            if (this.configuration.name.indexOf('beta') !== -1) return console.warn('app name cant have beta use mode:beta as the third argument')
+            if (this.configuration.name.indexOf('beta') !== -1) return console.warn('app name cant have beta use beta:true in the third argument')
 
 
             if(this.beta === true){
-              this.configuration.name = this.configuration.name+'-beta'
+              this.configuration.name = 'beta-'+this.configuration.name
               this.configuration.searchable = false
               //make a new instance that shares the same db? no does not shares the database. if we wont keep the database common how can we test if new users like it or not
             }

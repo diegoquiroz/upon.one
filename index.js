@@ -1470,7 +1470,7 @@ function handleParse(prop,range){
                   }else{
                     // console.log(interfaceObject, internallyCalled)
                     throw Error('invalid key '+key)
-
+                    //it was not caught, //to do how to abort
                   }
 
                 }
@@ -1906,6 +1906,7 @@ function handlePost(req, res, userData,userMeta){
       if (!userData)  return sendApiData({error:'Login required'})
       var appName = req.body.name
 
+      console.log(qBody,appName)
 
       db.law.findOne({app:appName},function(err, info_main){
 
@@ -1916,6 +1917,7 @@ function handlePost(req, res, userData,userMeta){
         var preCode = null
 
         if ( info_main.preCode ) preCode = JSON.parse(info_main.preCode)
+
 
 
         let prop = {app:appName, parse:qBody, preCode:preCode ,success:sendApiData, database:database, user:userData,log:meta.log}
@@ -2486,8 +2488,10 @@ function handlePost(req, res, userData,userMeta){
 
       if (!qBody.meta) qBody.meta = null
 
-      if ( typeof qBody.searchable !== 'boolean') qBody.searchable = false
-      if (qBody.searchable === false) qBody.searchable = false //fixed searchable bug but still apps wont be affected
+      if (qBody.searchable === undefined )qBody.searchable = true
+
+      if ( typeof qBody.searchable !== 'boolean' ) qBody.searchable = false
+       //fixed searchable bug but still apps wont be affected
       
 
       if (qBody.preCode) qBody.preCode   = JSON.stringify(qBody.preCode)
@@ -2813,6 +2817,9 @@ function handlePost(req, res, userData,userMeta){
 
       }else{
 
+        // /$ne
+
+        search_config['searchable'] = true
           
         db.apps.find(search_config).limit(10).exec(function(err, info){
           data = []
