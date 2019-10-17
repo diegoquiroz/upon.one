@@ -1122,6 +1122,10 @@ global.server = new class{
 
 
 
+    }fromPhone(){
+      let width = (window.innerWidth > 0) ? window.innerWidth : screen.width;
+      if (width < 500)  return true
+      return false
     }login(){
 
 
