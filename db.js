@@ -10,7 +10,6 @@ let appSchema = new mongoose.Schema({
   },
   hash:String,
   description:String,
-  password: String,
   owner:String,
   about:String,
   meta:String,

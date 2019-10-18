@@ -523,7 +523,7 @@ function connectToRoom(ws,req){ // socket connection for rooms
       createOrAddToRoom()
     }else if(msg.purpose == 'broadcast'){
       // console.log('broadcasting')
-      broadcast(roomToken,msg.content,'onmessage',roomLabel)
+      broadcast(roomToken,msg.content,'ondata',roomLabel)
     }else if(msg.purpose == 'change_room'){
 
 
@@ -2513,7 +2513,8 @@ function handlePost(req, res, userData,userMeta){
 
 
       break//rename login
-    case'new':
+
+    case'host':
 
       qBody.db = JSON.stringify(qBody.db)
 
@@ -2625,7 +2626,7 @@ function handlePost(req, res, userData,userMeta){
                 return relation //am I giving the memory allocation of the previous one
       }
 
-      function addCron(){
+      function addCron(callback){
 
 
           if (!qBody.cron) return
@@ -2647,7 +2648,10 @@ function handlePost(req, res, userData,userMeta){
                //so that our $ne query could work
             }
 
-            db.law.findOneAndUpdate({ app:qBody.name },tasksPutValues,{new: true,runValidators: true }).then(msg=>{console.log('cron job added')})
+            db.law.findOneAndUpdate({ app:qBody.name },tasksPutValues,{new: true,runValidators: true },(error,msg)=>{
+              if(error) return failed(error.errMsg)
+              return callback({code:200})
+            })
           } 
       }
 
@@ -2670,7 +2674,7 @@ function handlePost(req, res, userData,userMeta){
             try{
               newDatabase = memoryAllocationLoop(newDatabase,oldDatabase)
             }catch(schemaErr){
-              return callback({error:schemaErr.message})
+              return failed(schemaErr.message)
             }
 
             // var util = require('util')//really usefull
@@ -2748,19 +2752,59 @@ function handlePost(req, res, userData,userMeta){
         })
       }
 
+      function saveIndex(callback){
+        qBody.url = qBody.name+qBody.url
+       
 
-      saveDB(rulesSavedNowSaveAppsConfig)//save rules
+        qBody.response = JSON.stringify(qBody.response)
+
+     
+
+        var chache_save = new db.chache({
+          url: qBody.url,
+          data: qBody.response
+        })
+
+        chache_save.save(error=> {
+
+            if(!error) return callback({code:200})
+            
+            if (error.code == 11000) db.chache.findOneAndUpdate({ url:qBody.url },{data:qBody.response},{new: true,runValidators: true },(error, doc) => {
+              
+              if (error) return console.log(error)
+              callback({code:200})
+              // console.log('Chache updated')
+            }) })
+      }
+
+      function failed(error,code){
+        if (!code) code = 400
+        res.send({code:code, error:error})
+      }
+
+      checkAppPermission(()=>{
+
+       saveDB(()=>{
+
+        saveIndex(()=>{
+
+          addCron(()=>{
+
+            res.send({code:200})
+
+          })
+
+        })
+
+       }); 
+
+
+       })//save rules
 
       
-      qBody.password = hash( qBody.password )
-      function rulesSavedNowSaveAppsConfig(msg){
+      //to do send cookie
 
-        // console.log(msg,'msg')
-
-        if(msg) if (msg.error) return res.send({error: msg.error})
-
-        // console.log(qBody.fees,'fees')
-
+      function checkAppPermission(callback){
 
         db.apps.find({name:qBody.name} , function(err, info){
 
@@ -2768,76 +2812,46 @@ function handlePost(req, res, userData,userMeta){
 
             var newapp = new db.apps({
               name:qBody.name,
-              password:qBody.password,
               preCode: qBody.preCode ,
               fees:qBody.fees,
               description:qBody.description,
               meta:qBody.meta,
               searchable:qBody.searchable,
-              owner:qBody.owner,
+              owner:userData.id,
             })
 
             newapp.save(error=>{
               if (error) throw error;
-              if(!res.headersSent) res.send({ code:200,msg:'hosted' })
-              addCron() 
+
+              callback()
+
             })
-          }else if(info[0].password == qBody.password){ //update doc if password matches
+          }else if(info[0].owner == userData.id){ //update doc if password matches
 
             db.apps.findOneAndUpdate({name:qBody.name},
-            {
-              description:qBody.description,
+            {description:qBody.description,
               meta:qBody.meta,
-              owner:qBody.owner,
               preCode: qBody.preCode,
               fees:qBody.fees,
               searchable:qBody.searchable
             },{new: true,runValidators: true}).then(doc => {
 
-              if(!res.headersSent) res.send({code:200,msg:'updated'})
-              addCron()
+
+              callback()
 
             }).catch(err =>console.error(err))
 
-          }else{ res.send(  { code:400, error:'wrong app or password ip:'} ) }
+          }else{ failed('You are Not the owner')  }
+
+
+
+
         })        
       }
 
 
       break
-      // to do: version update: whenever apps are updated remove all peers!
-    case'chache_hash':
-      // save index file
 
-      //to do check password
-      qBody.url = JSON.parse(req.body.configuration).name+qBody.url
-     
-
-      qBody.response = JSON.stringify(qBody.response)
-
-   
-
-      var chache_save = new db.chache({
-        url: qBody.url,
-        data: qBody.response
-      })
-
-      chache_save.save(error=> {
-
-          if(!error) return res.send({code:200})
-          
-          if (error.code == 11000) db.chache.findOneAndUpdate({ url:qBody.url },{data:qBody.response},{new: true,runValidators: true },(error, doc) => {
-            res.send({code:200})
-            if (error) console.log(error)
-            // console.log('Chache updated')
-          })
-          
-        
-    }
-
-      )
-
-      break
     case'getSavedChache':
       sendSavedChache( qBody.app+'/index', (data)=>{res.send(data) } )
       break
