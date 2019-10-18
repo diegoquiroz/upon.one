@@ -67,8 +67,7 @@ window.addEventListener( "message",
         console.log('post message approved',e.data)
         localStorage.setItem('hostea',e.data.cookie)
         localStorage.setItem('user',e.data.user)
-  },
-  false);
+  });
 //send message from iframe window
 
 // top.postMessage('hello', 'A');
