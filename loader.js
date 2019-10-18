@@ -61,10 +61,10 @@ document.body.onload = loader.init
 
 window.addEventListener( "message",
   function (e) {
-        console.log('post message received',e)
-        if(e.origin !== 'http://upon.one' && e.origin !== 'localhost:8080' && e.origin !== 'http://www.upon.one' && e.origin !== 'https://www.upon.one'){ return; } 
+        console.log('post message received',e.data,e)
+        // if(e.origin !== 'http://upon.one' && e.origin !== 'localhost:8080' && e.origin !== 'http://www.upon.one' && e.origin !== 'https://www.upon.one'){ return; } 
         // alert(e.data);
-        console.log('post message approved',e)
+        console.log('post message approved',e.data)
         localStorage.setItem('hostea',e.data.cookie)
         localStorage.setItem('user',e.data.user)
   },
