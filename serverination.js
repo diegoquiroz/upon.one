@@ -265,8 +265,8 @@ global.server = new class{
 
             // server.deployingNotification = server.say('Deploying..')//so get it wont get written in the source
 
-            this.tmp.link = []//link tags
-            this.tmp.meta = []//link tags
+            // this.tmp.link = []//link tags
+            this.tmp.head = []//link tags
             //link tags
 
             //remember link tags are not taken in wholesome
@@ -298,10 +298,10 @@ global.server = new class{
             async function newIconOrManifest(rel,index){
                 let hrefToStore = null
                 let attributeHref = index.getAttribute('href')
-                if (attributeHref.indexOf('http') !== -1 && attributeHref.indexOf('https') !== -1 ) {
-                  server.tmp.link.push( getAttributeObject(index) )
-                  hrefToStore = attributeHref
-                }else{
+                // if (attributeHref.indexOf('http') !== -1 && attributeHref.indexOf('https') !== -1 ) {
+                //   server.tmp.link.push( getAttributeObject(index) )
+                //   hrefToStore = attributeHref
+                // }else{ //we will upload external images to /favicon as well for home page
                   let icon = await fetch(attributeHref)
                   let blob = await icon.blob()
                   let newAttributes =  getAttributeObject(index)
@@ -318,13 +318,14 @@ global.server = new class{
                       break                                            
                   }
 
-                  hrefToStore = await server.utility.upload(blob,newAttributes.href) //upload and get the new link
+                  hrefToStore = await server.utility.upload(blob,newAttributes.href) //upload and get the new link, newAttributes.href so that it can be overridden
 
                   console.log('uploaded ',hrefToStore)
                   // direct to the server
-                  server.tmp.link.push(newAttributes)
+                  return newAttributes
+                  // server.tmp.link.push(newAttributes)
                   //render link tags
-                }
+                // }
 
                 // this.configuration[rel]  = hrefToStore//not needed
             }
@@ -338,37 +339,49 @@ global.server = new class{
                   var localcssText = await localFetch.text()
                   server.tmp.css == undefined? server.tmp.css = localcssText: server.tmp.css += localcssText
                 }
+
+                return null
             }
 
 
-            for(let index of document.querySelectorAll('meta')){
-              server.tmp.meta.push( getAttributeObject(index) )
-            }
 
-            for(let index of document.querySelectorAll('link')){
 
-              let rel = index.getAttribute('rel')
+            for(let index of document.querySelector('head').children ){
+              if(index.tagName === "STYLE") continue //link tag are icon
 
-              switch(rel.toLowerCase()){
-                case'icon':
-                  await newIconOrManifest(rel,index)
+              let attributes = getAttributeObject(index)
+              switch(index.tagName){
+
+                case'LINK':
+                  let rel = index.getAttribute('rel')
+                  switch(rel.toLowerCase()){
+                      case'icon':
+                        attributes = await newIconOrManifest(rel,index)
+                        break
+                      case'manifest':
+                        attributes = await newIconOrManifest(rel,index)
+                        break
+                      case'apple-touch-icon':
+                        attributes = await newIconOrManifest(rel,index)
+                        break
+                      case'stylesheet':
+                        attributes = await uploadStyleSheet(index)
+                        break
+                    }
+
                   break
-                case'manifest':
-                  await newIconOrManifest(rel,index)
-                  break
-                case'apple-touch-icon':
-                  await newIconOrManifest(rel,index)
-                  break
-                 case'stylesheet':
-                 await uploadStyleSheet(index)
-                  break
-                default:
-                  server.tmp.link.push( getAttributeObject(index) )
-                  break
-      
               }
 
+
+              if(!attributes) continue // in case of uploadStyleSheet because it directly translates to css file (document)
+              server.tmp.head.push({tag:index.tagName, attribute:attributes }  )
             }
+
+        
+          
+
+
+            
 
 
 
@@ -379,23 +392,23 @@ global.server = new class{
             //stamp the last time image was uploaded
             //set the new link tag
 
-            let manifestLinkRelation =  document.querySelector('link[rel="icon"]')
+            // let manifestLinkRelation =  document.querySelector('link[rel="icon"]')
             //upload image and put it to app directory
             //stamp the last time image was uploaded
 
 
             
             //stylesheets
-            for(let index of document.querySelectorAll('link[rel="stylesheet"]') ){
+            // for(let index of document.querySelectorAll('link[rel="stylesheet"]') ){
 
-              let href = index.getAttribute('href')
+              // let href = index.getAttribute('href')
 
               // console.log(href)
 
 
 
 
-            }
+            // }
 
 
             //css
@@ -607,32 +620,34 @@ global.server = new class{
                           nw_css.innerHTML = file_data.css;
                           document.head.appendChild(nw_css)
 
-                          for(let index of file_data.meta){
-                             var new_meta = document.createElement('meta')
-                             for(let attribute in index){
-                              new_meta.setAttribute(attribute,index[attribute])
+                          for(let index of file_data.head){
+                             var new_head_child = document.createElement(index.tag)
+                             
+                             for(let attribute in index.attribute){
+                              new_head_child.setAttribute(attribute,index.attribute[attribute])
                              }
-                             document.head.appendChild(new_meta)
+                             document.head.appendChild(new_head_child)
                           }
 
                           //to do : the scrapping will have incorrect image link, is that a pb?
 
+                          //replaced by head unificationL redundant code
                           //link tags
-                          for(let index of file_data.link){
+                          // for(let index of file_data.link){
 
-                            var new_link = document.createElement('link')
-                            for(let attribute in index){
-                              if (attribute === 'href') {
-                                let href = index[attribute]
-                                if( href.indexOf('http') === -1  && href.indexOf('https') === -1 ){
-                                  index[attribute] = 'http://'+server.configuration.name+'.'+server.info.host+':'+server.info.port+'/'+index[attribute]
-                                } 
-                              }
-                              new_link.setAttribute(attribute,index[attribute])
-                            }
-                            document.head.appendChild(new_link)
+                          //   var new_link = document.createElement('link')
+                          //   for(let attribute in index){
+                          //     if (attribute === 'href') {
+                          //       let href = index[attribute]
+                          //       if( href.indexOf('http') === -1  && href.indexOf('https') === -1 ){
+                          //         index[attribute] = 'http://'+server.configuration.name+'.'+server.info.host+':'+server.info.port+'/'+index[attribute]
+                          //       } 
+                          //     }
+                          //     new_link.setAttribute(attribute,index[attribute])
+                          //   }
+                          //   document.head.appendChild(new_link)
 
-                          }
+                          // }
 
                           //js
                           for(let index of file_data.js.loads){
@@ -813,7 +828,7 @@ global.server = new class{
 
       // server.socketFunctions[type][msg.token] = receptionObject
 
-      console.log(msg,server.socket[type])
+      // console.log(msg,server.socket[type])
 
       if(!server.socket[type]){
         server.setupSocket(msg,type)

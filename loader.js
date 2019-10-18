@@ -61,10 +61,12 @@ document.body.onload = loader.init
 
 window.addEventListener( "message",
   function (e) {
-        if(e.origin !== 'http://upon.one' && e.origin !== 'localhost:8080'){ return; } 
+        console.log('post message received',e)
+        if(e.origin !== 'http://upon.one' && e.origin !== 'localhost:8080' && e.origin !== 'http://www.upon.one' && e.origin !== 'https://www.upon.one'){ return; } 
         // alert(e.data);
-        console.log('post message received')
-        localstorage.setItem('hostea',e.data)
+        console.log('post message approved',e)
+        localStorage.setItem('hostea',e.data.cookie)
+        localStorage.setItem('user',e.data.user)
   },
   false);
 //send message from iframe window
