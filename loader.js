@@ -65,9 +65,9 @@ let loader = {
                 console.log('post message approved',e.data)
 
                 if(e.data.indexOf('setImmediate') !== -1) return console.log('a set Immediate')
-                
-                localStorage.setItem('hostea',e.data.cookie)
-                localStorage.setItem('user',e.data.user)
+                let data = JSON.parse(e.data)
+                localStorage.setItem('hostea',data.cookie)
+                localStorage.setItem('user',data.user)
           });
 
 
