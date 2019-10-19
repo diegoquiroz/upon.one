@@ -60,14 +60,19 @@ let loader = {
           function (e) {
 
                 console.log('post message received',e.data, document.getElementsByClassName('hostea')[0].getAttribute('app_name') )
-                if(e.origin !== 'http://upon.one' && e.origin !== 'localhost:8080' && e.origin !== 'http://www.upon.one' && e.origin !== 'https://www.upon.one'){ return; } 
+                if(e.origin !== 'https://upon.one' && e.origin !== 'http://upon.one' && e.origin.indexOf('localhost') === -1 && e.origin !== 'http://www.upon.one' && e.origin !== 'https://www.upon.one'){ return; } 
                 // alert(e.data);
                 console.log('post message approved',e.data)
 
                 if(e.data.indexOf('setImmediate') !== -1) return console.log('a set Immediate')
+                    
                 let data = JSON.parse(e.data)
+
+                if(localStorage.getItem('hostea')) return
+
                 localStorage.setItem('hostea',data.cookie)
                 localStorage.setItem('user',data.user)
+                window.location.reload()
           });
 
 
