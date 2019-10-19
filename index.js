@@ -218,7 +218,7 @@ app.post('/upload',upload,(req, res) =>{
 
 
             // console.log(raw)
-            if (!raw ) return res.send({error:'permission denied for update of'+fileName})
+            if (!raw ) return res.send({error:'permission denied for update of: '+fileName})
             if (errorUpdate) return res.send({error:errorUpdate})
             res.send({code:200,url:info.filename,updated:true})
             // console.log('update uploaded'+info.filename)

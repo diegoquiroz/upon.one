@@ -54,21 +54,30 @@ let loader = {
         document.getElementsByClassName('hostea')[0].getAttribute('mode') == 'testing'? serve.src = 'http://localhost:8080/serverination.js':serve.src = 'http://serverination.herokuapp.com/serverination.js'
         serve.attributes = document.getElementsByClassName('hostea')[0].attributes
         document.head.appendChild(serve)
+
+
+        window.addEventListener( "message",
+          function (e) {
+
+                console.log('post message received',e.data, document.getElementsByClassName('hostea')[0].getAttribute('app_name') )
+                if(e.origin !== 'http://upon.one' && e.origin !== 'localhost:8080' && e.origin !== 'http://www.upon.one' && e.origin !== 'https://www.upon.one'){ return; } 
+                // alert(e.data);
+                console.log('post message approved',e.data)
+
+                if(e.data.indexOf('setImmediate') !== -1) return console.log('a set Immediate')
+                
+                localStorage.setItem('hostea',e.data.cookie)
+                localStorage.setItem('user',e.data.user)
+          });
+
+
+
     }
 }
 
 document.body.onload = loader.init
 
-window.addEventListener( "message",
-  function (e) {
-        console.log('post message received',e.data,e)
-        if(e.origin !== 'http://upon.one' && e.origin !== 'localhost:8080' && e.origin !== 'http://www.upon.one' && e.origin !== 'https://www.upon.one'){ return; } 
-        // alert(e.data);
-        console.log('post message approved',e.data)
-        
-        localStorage.setItem('hostea',e.data.cookie)
-        localStorage.setItem('user',e.data.user)
-  });
+
 //send message from iframe window
 
 // top.postMessage('hello', 'A');
