@@ -62,7 +62,7 @@ let loader = {
                 let mama = document.getElementsByClassName('hostea')[0]
 
                 if(mama) mama = mama.getAttribute('app_name')
-                console.log('post message received',e.data, mama )
+                console.log('post message received',e.data, mama,e.origin )
                 if(e.origin !== 'https://upon.one' && e.origin !== 'http://upon.one' && e.origin.indexOf('file://') === -1  && e.origin.indexOf('localhost') === -1 && e.origin !== 'http://www.upon.one' && e.origin !== 'https://www.upon.one'){ return; } 
                 // alert(e.data);
                 console.log('post message approved',e.data)
