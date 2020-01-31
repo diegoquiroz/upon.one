@@ -510,7 +510,7 @@ function handleParse(prop,range){
                       
                       let data = await db.vDb.findOne({unique: unique})
                       // console.log(data)
-                      if(!data) throw Error('document not found')
+                      if(!data) throw Error('document not found, unique: '+unique)
                       contentId = data.id
                     // }catch(error){
                       // return {error:error}

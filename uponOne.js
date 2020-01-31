@@ -41,7 +41,7 @@ global.server = new class{
 
       // window.addEventListener('load',this.declareComponents)
     }start(...arg){
-
+      console.log('starting')
 
       prepSourceExtraction = prepSourceExtraction.bind(this)
       launch = launch.bind(this)
@@ -94,7 +94,7 @@ global.server = new class{
       }else{
         this.job == 'host'
         this.hostStatus = false
-        window.addEventListener('load',prepSourceExtraction)
+        document.readyState === "complete"?prepSourceExtraction() : window.addEventListener('load',prepSourceExtraction)
       }
 
 
@@ -226,7 +226,7 @@ global.server = new class{
 
 
             if (this.bypass === true){
-
+              console.log('bypassing')
               if(!localStorage.getItem('hostea')) return server.login().then(server.declareLoaded)
 
               server.declareLoaded()
@@ -363,11 +363,6 @@ global.server = new class{
                 this.files['/index'] = virtualDiv.innerHTML
                 launch()
             }
-
-
-
-                
-
       }
 
             //we say this after so that the deploying message doesn't get sourced out
@@ -379,7 +374,7 @@ global.server = new class{
     }addFees(value, flavour){
       server.configuration.fees[flavour] = value
     }declareLoaded(){
-
+      console.log('declaring loaded')
       //login is not done here because of security reasons
       if(localStorage.getItem('hostea')) if( !localStorage.getItem('user') ) return server.saveUserData().then(doLoad)
     
@@ -1488,6 +1483,8 @@ global.server = new class{
       //enable bulk payment
       //detect @ and according to it user will be found
 
+    }componentRegistered(name){
+       return document.createElement(name).constructor !== HTMLElement;
     }pay(paymentList,type,flavour){ //it is async will return order id
 
       let orderIDs = null
