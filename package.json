@@ -1,12 +1,12 @@
 {
-  "name": "serverination",
+  "name": "uponOne",
   "version": "1.0.0",
   "description": "Killing Servers",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
     "test": "nodemon --inspect index.js",
-    "watch": "watchify client/main.js -o serverination.js -v"
+    "watch": "watchify client/main.js -o uponOne.js -v"
   },
   "author": "Arnav Singh",
   "license": "ISC",

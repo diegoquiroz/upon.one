@@ -5,6 +5,19 @@ const {hash,checkBalance,random,setNewVerificationCode,sendEmail,sendVerificatio
 
 const handleParse = require('./handleParse.js')
 
+function sendAppSource(fileName,callback){//find one
+
+  db.appSource.findOne( {url:fileName} , function(err_o, info_o){
+
+    // console.log(fileName, info_o)
+    if(!info_o) return callback( { error:'404 '+fileName+' not found' } )
+    if (err_o) return console.log(err_o)
+    
+    if(info_o) callback( { data: info_o.data } ) 
+              
+    })            
+}
+
 function handlePost(req, res, userData,userMeta){
 
   var qBody = ''
@@ -907,28 +920,28 @@ function handlePost(req, res, userData,userMeta){
         })
       }
 
-      function saveIndex(callback){
+      function saveAppSource(callback){
         qBody.url = qBody.name+qBody.url
        
 
-        qBody.response = JSON.stringify(qBody.response)
+        // console.log(qBody.response)
 
      
 
-        var chache_save = new db.chache({
+        var appSource_save = new db.appSource({
           url: qBody.url,
           data: qBody.response
         })
 
-        chache_save.save(error=> {
+        appSource_save.save(error=> {
 
             if(!error) return callback({code:200})
             
-            if (error.code == 11000) db.chache.findOneAndUpdate({ url:qBody.url },{data:qBody.response},{new: true,runValidators: true },(error, doc) => {
+            if (error.code == 11000) db.appSource.findOneAndUpdate({ url:qBody.url },{data:qBody.response},{new: true,runValidators: true },(error, doc) => {
               
               if (error) return console.log(error)
               callback({code:200})
-              // console.log('Chache updated')
+              // console.log('appSource updated')
             }) })
       }
 
@@ -941,7 +954,7 @@ function handlePost(req, res, userData,userMeta){
 
        saveDB(()=>{
 
-        saveIndex(()=>{
+        saveAppSource(()=>{
 
           addCron(()=>{
 
@@ -1007,8 +1020,8 @@ function handlePost(req, res, userData,userMeta){
 
       break
 
-    case'getSavedChache':
-      sendSavedChache( qBody.app+'/index', (data)=>{res.send(data) } )
+    case'getAppSource':
+      sendAppSource( qBody.app+'/index', (data)=>{res.send(data) } )
       break
     case'search':
       let query = qBody.query

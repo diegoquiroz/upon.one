@@ -267,7 +267,56 @@ function handleQuery(type,par,via,parentRange,databaseSchema,handleParse){
                   }
 
 
-                  //get requored field
+
+
+
+                  //curresponding to the date updated
+                  // YoungerThan:'2day', YoungerThan:'2day',YoungerThan:'2day'
+                  // YoungerThan:'2day', YoungerThan:'2day',YoungerThan:'2day'
+
+
+                  function tellTimeBefore(val){ 
+
+                    if(val[val.length-1] !== 's') val = val+'s'
+                    let limit = 0
+                    let number = parseInt(val)
+                    switch(val.replace(/[0-9]/g, '').toLowerCase()){
+                      case 'days':
+                        limit = new Date(new Date().setDate(new Date().getDate()-number))
+                        break
+                      case 'hours':
+                        limit = new Date(Date.now() - number*60*60 * 1000)
+                        break
+                      case `minutes`:
+                        limit = new Date(Date.now() - number*60 * 1000)
+                        break
+                      case 'seconds':
+                        limit = new Date(Date.now() - number* 1000)
+                        break
+                    }
+                    return limit
+
+                  }
+
+                  if(par.youngerThan || par.olderThan){
+
+                    let val = par.youngerThan || par.olderThan
+
+
+
+                    let comparisonType = '$lt' //older than means age less than
+
+                    if(par.youngerThan){
+                      comparisonType = '$gte'
+                    }
+
+
+                    whereQuery['created_at'] = {}
+                    whereQuery['created_at'][comparisonType] = tellTimeBefore(val)
+
+                  }
+
+                  //get required field
 
 
                   switch(type.toLowerCase()){
@@ -398,6 +447,8 @@ function handleQuery(type,par,via,parentRange,databaseSchema,handleParse){
                         
                     
                       }
+
+
 
                       sortBy.sort[sortAccordingTo] = sortOrder 
                       // if(par.sort && relationObject[par.sortBy]) sortAccordingTo = relationObject[par.sort.by] //sort according to which field

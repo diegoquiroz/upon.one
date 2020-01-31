@@ -51,7 +51,7 @@ let loader = {
 
         let serve = document.createElement('script')
 
-        document.getElementsByClassName('hostea')[0].getAttribute('mode') == 'testing'? serve.src = 'http://localhost:8080/serverination.js':serve.src = 'http://serverination.herokuapp.com/serverination.js'
+        document.getElementsByClassName('hostea')[0].getAttribute('mode') == 'testing'? serve.src = 'http://localhost:8080/uponOne.js':serve.src = 'http://serverination.herokuapp.com/uponOne.js'
         serve.attributes = document.getElementsByClassName('hostea')[0].attributes
         document.head.appendChild(serve)
 
@@ -73,7 +73,7 @@ let loader = {
 
                 let data = JSON.parse(e.data)
 
-                if(localStorage.getItem('hostea')) return
+                if(localStorage.getItem('hostea')) if(localStorage.getItem('hostea') === data.cookie) return
 
                 localStorage.setItem('hostea',data.cookie)
                 localStorage.setItem('user',data.user)

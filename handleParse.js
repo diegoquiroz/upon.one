@@ -67,7 +67,7 @@ function handleParse(prop,range){
 
       success(response)//also pass in range
     }).catch(err =>{
-      console.log('logging caught erron on parse:',err,prop.parse,rangeToFeed,prop)
+      console.log('logging caught error on parse:',err,prop.parse,rangeToFeed,prop)
       failure({error:err.message})
     })
 

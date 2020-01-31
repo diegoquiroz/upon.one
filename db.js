@@ -2,7 +2,7 @@ let mongoose = require('./mongo_config.js')
 
 // mongoose.set('debug', true);//decativate
 
-let appSchema = new mongoose.Schema({
+let apps = new mongoose.Schema({
   name:{
     type: String,
     required: true,
@@ -22,12 +22,12 @@ let appSchema = new mongoose.Schema({
 
 })
 
-appSchema.index({name: 'text', about: 'text',tags:'text'});
+apps.index({name: 'text', about: 'text',tags:'text'});
 //we dont need to store the location of icon or manifest.json or apple touch icon cause there location are permanent
 
 //set default value for search
 
-let userschema = new mongoose.Schema({
+let users = new mongoose.Schema({
   username:{
     type: String,
     required: true,
@@ -49,7 +49,7 @@ let userschema = new mongoose.Schema({
   tags:[String]
 })
 
-userschema.index({name: 'text', about: 'text',tags:'text',username:'text'});
+users.index({name: 'text', about: 'text',tags:'text',username:'text'});
 
 let scrap = new mongoose.Schema({
   url:{
@@ -66,39 +66,6 @@ let scrap = new mongoose.Schema({
 scrap.index({heading: 'text', text: 'text'});
 
 
-
-
-let peerSchema = new mongoose.Schema({
-
-    peerId:{ 
-      type: String,
-      required: true,
-      unique: true,
-    },
-    version: String,
-    files: [String]
-
-})
-
-let chacheSchema = new mongoose.Schema({
-  url:{ 
-      type: String,
-      required: true,
-      unique: true,
-    },
-  hash:String,
-  data:String
-})
-
-//for speed they are seprate
-let hashSchema = new mongoose.Schema({
-  url:{ 
-      type: String,
-      required: true,
-      unique: true,
-    },
-  data:String
-})
 
 let stats = new mongoose.Schema({
   app:String,
@@ -153,13 +120,23 @@ let virtualDB = new mongoose.Schema({
   N_2:Number,
   N_3:Number,
   N_4:Number,
-  N_5:Number,
+  N_5:Number,  
+  N_6:Number,
+  N_7:Number,
+  N_8:Number,
+  N_9:Number,
+  N_10:Number,
   S_0:String,
   S_1:String,
   S_2:String,
   S_3:String,
   S_4:String,
-  S_5:String,
+  S_5:String, 
+  S_6:String,
+  S_7:String,
+  S_8:String,
+  S_9:String,
+  S_10:String,
   A_0:[String],
   A_1:[String],
   A_2:[String],
@@ -189,6 +166,8 @@ let action = new mongoose.Schema({
   sender:String,
   receiver:String,
   reference:String,
+  referenceDb:String,
+  magnitude:Number,
   message:String,
   official:{type:Boolean, default:false}, //sent by app
   seen:{
@@ -200,7 +179,7 @@ let action = new mongoose.Schema({
 
 
 
-let lawSchema = new mongoose.Schema({
+let law = new mongoose.Schema({
   app:{
       type: String,
       required: true,
@@ -213,8 +192,6 @@ let lawSchema = new mongoose.Schema({
   quaterly:String,
   yearly:String,
   monthly:String
-
-
 })
 
 
@@ -230,7 +207,6 @@ let tasks = new mongoose.Schema({
 })
 
 // deleteOne, to unfollow
-
 //it is the best decision to keep the hash and chache seprately
 
 var files = new mongoose.Schema({
@@ -238,6 +214,7 @@ var files = new mongoose.Schema({
   filetype:String,
   owner:{type:String, required:true},//make it a required variable
   app:String,
+  path:String,
   size:Number,
   filename:{
       type: String,
@@ -247,17 +224,24 @@ var files = new mongoose.Schema({
   encoding:String//daily,weekly,monthly,quaterly
 })
 
+let appSource = new mongoose.Schema({
+  url:{ 
+      type: String,
+      required: true,
+      unique: true,
+    },
+  hash:String,
+  data:String
+})
 
 module.exports = {
-	apps: mongoose.model('apps', appSchema),
-	peers: mongoose.model('peers', peerSchema),
-  chache: mongoose.model('chache', chacheSchema),
-  hash: mongoose.model('hash', hashSchema),
-  users: mongoose.model('user',userschema),
+	apps: mongoose.model('apps', apps),
+  appSource: mongoose.model('appSource', appSource),
+  users: mongoose.model('user',users),
   scrap: mongoose.model('scrap',scrap),
   files: mongoose.model('files',files),
   vDb: mongoose.model('virtualDB',virtualDB),
-  law: mongoose.model('law',lawSchema),
+  law: mongoose.model('law',law),
   tasks: mongoose.model('tasks',tasks),
   action: mongoose.model('action',action),
   transactions: mongoose.model('transactions',transactions)

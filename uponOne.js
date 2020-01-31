@@ -94,7 +94,7 @@ global.server = new class{
       }else{
         this.job == 'host'
         this.hostStatus = false
-        prepSourceExtraction()
+        window.addEventListener('load',prepSourceExtraction)
       }
 
 
@@ -136,7 +136,7 @@ global.server = new class{
               document.body.innerHTML = '404 Page Not Found'
               return console.log(data.error)
             } 
-            // server.declareLoaded()//script needs to be loaded too
+
             this.newpage( data.data)
 
           })
@@ -245,17 +245,19 @@ global.server = new class{
             var i = scripts.length;
             while (i--) {
 
-              let linkToThisFile = false
-              let hrefToCheck = scripts[i].getAttribute('href')
+              console.log(scripts[i])
 
-              if(hrefToCheck){
-                if(hrefToCheck.indexOf('source.upon.one') !== -1 || hrefToCheck.indexOf('uponOne.js') !== -1  ){
+              let linkToThisFile = false
+              let srcToCheck = scripts[i].getAttribute('src')
+
+              if(srcToCheck){
+                if(srcToCheck.indexOf('source.upon.one') !== -1 || srcToCheck.indexOf('uponOne.js') !== -1  ){
                   linkToThisFile = true
                 }
               }
 
               if(scripts[i].getAttribute('class') === 'private' || linkToThisFile === true ){
-                console.log('removing script',scripts[i])
+                // console.log('removing script',scripts[i])
                 scripts[i].parentNode.removeChild(scripts[i]);
               }
 
@@ -277,7 +279,6 @@ global.server = new class{
 
                 if (!name) name = location.split('/')[ location.split('/').length -1 ]
                 return await server.utility.upload(blob,name) //upload and get the new link, newAttributes.href so that it can be overridden
-
             }
 
             async function newIconOrManifest(index){
@@ -317,9 +318,6 @@ global.server = new class{
             }
 
 
-
-
-
             for(let index of virtualDiv.querySelectorAll('link') ){
 
               let href = null
@@ -343,10 +341,33 @@ global.server = new class{
             }
 
             
+            extractCodeOfExternalScript.call(this)
+
+            async function extractCodeOfExternalScript(){
+
+                for(let index of virtualDiv.querySelectorAll(`script`) ){
+
+                  var src = index.getAttribute('src')
+                  if(!src) continue
+
+                  if (src.indexOf('http') === -1 && src.indexOf('https') === -1) {//local file
+                    var localJsFetch = await fetch(src)
+                    var localJsText = await localJsFetch.text()
+                    index.removeAttribute('src')
+                    index.innerHTML = localJsText
+                  }                  
+                }
+
+
 
                 this.files['/index'] = virtualDiv.innerHTML
-
                 launch()
+            }
+
+
+
+                
+
       }
 
             //we say this after so that the deploying message doesn't get sourced out
@@ -480,14 +501,20 @@ global.server = new class{
           callback = resolve
         })
       }
-    }loadScript(src) {
+    }loadScript(script,jusUrl) {
       return new Promise(function (resolve, reject) {
-          var s;
-          s = document.createElement('script');
-          s.src = src;
-          s.onload = resolve;
-          s.onerror = reject;
-          document.head.appendChild(s);
+
+          if(jusUrl){
+            let src = script
+            let script = document.createElement('script')
+            script.setAttribute('src',script)
+          }
+
+
+          script.onload = resolve;
+          script.onerror = reject;
+          document.head.appendChild(script);
+          if(!script.src) resolve() //load event is not triggerd in case of internal script
       });
     }newpage(file_data){
 
@@ -495,23 +522,54 @@ global.server = new class{
       //file data is null
       if (loader) {loader.finish()} //loader playing is not being checked
 
-        let virtualDiv = document.createElement('div')
-        virtualDiv.innerHTML = file_data
+        document.removeChild( document.children[0])
+        let virtualHtml = document.createElement('html')
+        virtualHtml.innerHTML = file_data
 
-        for(let index of virtualDiv.querySelectorAll('script')){
-          let newElement = document.createElement('script')
-          console.log(index)
-          newElement.innerHTML = index.innerHTML
-          newElement.setAttribute('type',index.getAttribute('type'))
-          document.head.appendChild(newElement)
+        // for(let index of virtualDiv.querySelectorAll('script')){
+        //   let newElement = document.createElement('script')
+        //   console.log(index)
+        //   newElement.innerHTML = index.innerHTML
+        //   newElement.setAttribute('type',index.getAttribute('type'))
+        //   document.head.appendChild(newElement)
+        // }
+
+        document.appendChild( virtualHtml)
+        loadAllScripts()
+
+        async function loadAllScripts(){ //loads script with order
+          let scripts = virtualHtml.querySelectorAll('script')
+
+
+          for(let index of scripts){
+            let scriptClone = document.createElement('script')
+            scriptClone.innerHTML = index.innerHTML
+            await server.loadScript(scriptClone)
+          }
+
+          server.declareLoaded()
         }
 
 
-        
-
-
-                        
                         // this.frontcall[url] execute
+    }repeatedCheck(checkFunction,success){
+      console.log('ca')
+
+      let intervalInstance = setInterval(checker, 100);
+
+      function checker(){
+
+        if(checkFunction() === true){
+          clearInterval(intervalInstance)
+          success()
+        }else{
+          console.log(checkFunction())
+        }
+
+      }
+
+
+
     }print(data){
 
       console.log('%c'+data, 'color: Green; background-color: LightGreen; padding: 2px 5px; border-radius: 2px');//type of print: error, warning, greeting
