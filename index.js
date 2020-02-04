@@ -16,8 +16,7 @@ const cron = require("node-cron");
 
 var multer  = require('multer')
 
-const sgMail = require('@sendgrid/mail')
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+
 
 const handleParse = require('./handleParse.js')
 const cronWorker = require('./cronWorker.js')

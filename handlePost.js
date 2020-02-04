@@ -1,3 +1,5 @@
+if(!process.env.PORT) require('dotenv').config();
+
 const db = require('./db.js')
 const cronWorker = require('./cronWorker.js')
 
