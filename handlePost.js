@@ -3,7 +3,7 @@ if(!process.env.PORT) require('dotenv').config();
 const db = require('./db.js')
 const cronWorker = require('./cronWorker.js')
 
-const {hash,checkBalance,random,setNewVerificationCode,sendEmail,sendVerificationEmail} = require('./functions.js')
+const {getUserData, hash,checkBalance,random,setNewVerificationCode,sendEmail,sendVerificationEmail} = require('./functions.js')
 
 const handleParse = require('./handleParse.js')
 
