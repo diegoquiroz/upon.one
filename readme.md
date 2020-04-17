@@ -29,26 +29,26 @@ notice values, required, default & unique (they do what they sound like)
 
 	server.db['YourCollectionName'] = {
 
-				schema:{
-			  		chatHistory:Array,
-			  		chatId:'unique',
-			  		person1: {required:true,type:String, default:'$user.id'},
-			  		person2:{required:true,type:String},
-			  		notSeenBy:String
-			 		},
-			 	permission:{
+		schema:{
+	  		chatHistory:Array,
+	  		chatId:'unique',
+	  		person1: {required:true,type:String, default:'$user.id'},
+	  		person2:{required:true,type:String},
+	  		notSeenBy:String
+	 		},
+	 	permission:{
 
-				  update:{
-				   $or:[ {$equal:['$user.id','$field.person1'] } , {$equal: ['$user.id','$field.person2'] } ]
-				  },
+		  update:{
+		   $or:[ {$equal:['$user.id','$field.person1'] } , {$equal: ['$user.id','$field.person2'] } ]
+		  },
 
-				  read:{
-				   $or:[ {$equal:['$user.id','$field.person1'] } , {$equal: ['$user.id','$field.person2'] } ]
-				  }
+		  read:{
+		   $or:[ {$equal:['$user.id','$field.person1'] } , {$equal: ['$user.id','$field.person2'] } ]
+		  }
 
-				 }
-				 
-			}
+		 }
+		 
+	}
 
 
 // above code belongs to private script tag & above server.start
