@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Home Upon One</title>
+	<meta name="mobile-web-app-capable" content="yes">
+	<meta name='viewport' content='width=device-width, initial-scale=1.0, user-scalable=0' >
+	<meta charset="UTF-8">
+
+    <script data-ad-client="ca-pub-3138708988719699" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+
+<!-- Place this tag in your head or just before your close body tag. -->
+<script async defer src="https://buttons.github.io/buttons.js"></script>
+
+	<style type="text/css">
+
+		#feed_data {
+		    display: grid;
+		    grid-template-columns: 1fr 1fr 1fr 1fr;
+		    grid-gap: 2vw;
+		    grid-column-gap: 10vw;
+		    grid-auto-rows: 200px;
+		}#side-pannel {
+		    position: relative;
+		    /* left: 0; */
+		    width: 5vw;
+		    /* border-right: 0.1vw solid; */
+		    height: 100vh;
+		    padding-top: 1vw;
+		    float: left;
+		    background: #e3e3e3;
+		}
+
+div#encapsulator {
+    float: right;
+    width: 100vw;
+    height: 100vh;
+    position: relative;
+}
+		#feed, iframe {
+    /* margin: 1vw 1vw 0vw 0vw; */
+    border: none;
+    overflow: hidden;
+    /* border-radius: 1vw; */
+    overflow-y: scroll;
+    width: 100%;
+    /*position: absolute;*/
+    top: 0;
+    margin: 0;
+    padding: 0;
+    transition: visibility 0s, transform 0.25s ease;
+    height: 30vh;
+
+		}
+
+		#doc{
+			padding: 4vw;
+			font-size: 20px;
+		}
+
+
+div#img {
+    height: 5vw;
+    width: 5vw;
+    background-size: contain;
+    margin-bottom: 2vw;
+    border-radius: 1vw;
+    margin-right: 3vw;
+    box-shadow: 1vw 1vw 1vw #55555540;
+}
+
+		#feed[data-status=active], iframe[data-status=active] {
+    		transform: scale(1);
+    		visibility: visible;
+		}
+
+
+
+
+		#feed{
+			width: 95%;
+			padding: 4vw;
+		}
+
+		#side-pannel button{
+			width: 100%;
+		}
+
+		#side-pannel div#app #img {
+		    height: 3vw;
+		    width: 3vw;
+		    border-radius: 1vw;
+		    box-shadow: 0.5vw 0.5vw 1vw #9996;
+		    background-size: cover;
+		    background-color: #fff;
+		}
+
+		#side-pannel span {
+		    display: none;
+		}
+
+		#feed_data a:hover{
+			transform: scale(0.8);
+		}
+
+		#feed_data a {
+		    padding: 1vw 1.5vw;
+		    border: none;
+		    border-radius: 1vw;
+		    margin-right: 1vw;
+		    transition: 0.25s ease;
+		    cursor: pointer;
+		    outline: none;
+		    text-decoration: none;
+		    background: #e6e6e6;
+			margin-top: 1vw;
+			display: inline-block;
+			color:#151414;
+		}
+
+
+
+		#feed_data .icon #img {
+		    width: 4vw;
+		    /* padding: 1vw; */
+		    height: 4vw;
+		    border-radius: 1vw;
+		    background: #fff;
+		    background-size: cover;
+		    margin: 1vw;
+		    box-shadow: -1px 0vw 1vw #55555526;
+		}
+
+		#side-pannel div#home {
+		    font-weight: 900;
+		}
+
+		#side-pannel div#app:hover, #home:hover{
+			transform: scale(0.8);
+		}
+
+		#side-pannel div#app {
+    margin: 1vw;
+    border: none;
+    transition: 0.25s ease;
+    cursor: pointer;
+}
+
+		#home{
+		    position: absolute;
+		    left: 0;
+		    width: 4%;
+		    bottom: 0vw;
+		    padding: 1vw 0;
+		    margin: 0.5vw;
+		    cursor: pointer;
+		    border-radius: 1vw;
+		    /* height: 5%; */
+		    transition: 0.2s ease;
+		    background: #ffffffb0;
+		    border: none;
+		    border: 0.1vw solid;
+		}
+
+		#side-pannel button img {
+		    width: 100%;
+		}
+
+		#feed h1 {
+    padding: 0;
+    margin-top: 0;
+    display: inline-block;
+    width: 100%;
+    margin-bottom: 4vw;
+}
+
+#feed heading {
+    float: left;
+    display: none;
+    line-height: 2vw;
+}
+
+#feed h1 input[type="text"] {
+    /* float: right; */
+    width: 98%;
+    padding: 1.5vw 1vw;
+    outline: none;
+    /* text-align: center; */
+    font-size: 1.5vw;
+    border: none;
+    border-radius: 1vw;
+    background: #00000021;
+}
+
+
+div#sites_data #result_block {
+    display: grid;
+    margin-bottom: 4vw;
+    /* grid-template-columns: 0.5fr 6fr; */
+}
+div#describe {
+    display: grid;
+    grid-template-columns: 0.1fr 8fr;
+}div#describe img {
+margin: 1vw;
+    border-radius: 5vw;
+    width: 2.5vw;
+    margin-left: 0;
+    box-shadow: 0vw 0vw 7px #5555553d;
+    height: 2.5vw;
+}div#describe a#head {
+font-size: 3vw;
+    padding: 1vw;
+    font-weight: 900;
+    color: #111;
+    padding-top: 0;
+}div#link span {
+    background: #5555552b;
+    padding: 0vw 1vw;
+}div#meta div#text {
+    margin-top: 0.5vw;
+    max-height: 10vw;
+    overflow: hidden;
+    /* font-size: 2vw; */
+}pre{
+    background: #dbdbdb;
+    padding: 2vw;
+    border-radius: 1vw;
+    box-shadow: 1vw 0.5vw;
+}
+	/*// grid column will be saved */
+
+	body{
+		overflow-x:hidden; 
+		overflow-y: scroll;
+		margin: 0;
+		font-family: roboto;
+		padding: 0;
+	}
+
+	 @media only screen and (max-width: 500px){
+	 	#feed, iframe {
+    width: 100%;
+    position: absolute;
+    top: 0;
+    height: 93%;
+    left: 0;
+}#feed h1 input[type="text"] {
+    width: 90vw;
+    font-size: 5vw;
+}#feed_data {
+    grid-template-columns: 1fr 1fr;
+    grid-column-gap: 0vw;
+    width: 90vw;
+}#feed_data .icon #img {
+    width: 20vw;
+    height: 20vw;
+    border-radius: 5vw;
+    box-shadow: -1px 0vw 6vw #5555554f;
+    margin-bottom: 2vw;
+}#feed_data a {
+    padding: 3vw 4vw;
+    border-radius: 3vw;
+}#side-pannel {
+    width: 100%;
+    height: 13vw;
+    /* background: #000; */
+    position: fixed;
+    bottom: 0;
+    border: none;
+    border-top: none;
+}#side-pannel div#app #img {
+    height: 10vw;
+    width: 10vw;
+}#home {
+    width: 20%;
+    right: 0;
+    left: unset;
+    /* height: 7vh; */
+    padding: 2vw 2vw;
+    bottom: 2vw;
+    border: 0.5vw solid;
+    right: 2vw;
+}div#describe a#head {
+    font-size: 7vw;
+    width: 80vw;
+}div#meta div#text{
+	width: 90vw;
+}div#img {
+    height: 10vw;
+    width: 10vw;
+    background-size: contain;
+    border-radius: 3vw;
+    margin-right: 3vw;
+    box-shadow: 1vw 1vw 1vw #55555540;
+}#side-pannel div#app {
+    margin: 1vw;
+    border: none;
+    transition: 0.25s ease;
+    cursor: pointer;
+    width: 10vw;
+    float: left;
+}	
+	 }
+
+	</style>
+
+
+	
+</head>
+<body>
+
+
+		<div id="encapsulator">
+			<div id="feed">
+				<h1>
+					<heading>Apps</heading> <input type="text" placeholder="search" onKeyup="search(event)">
+				</h1>
+
+				<div id="feed_data"></div>
+				<div id="sites_data"></div>
+			</div>
+
+
+
+<div id="doc">
+	<h1>Open source, Firebase like BAAS (Backend as a service) </h1> 
+		<!-- Place this tag where you want the button to render. -->
+	<a class="github-button" href="https://github.com/itsarnavsingh/upon.one" data-size="large" data-show-count="true" aria-label="Star itsarnavsingh/upon.one on GitHub">Star</a>
+
+	<!-- Place this tag where you want the button to render. -->
+<a class="github-button" href="https://github.com/itsarnavsingh/upon.one/fork" data-size="large" data-show-count="true" aria-label="Fork itsarnavsingh/upon.one on GitHub">Fork</a>
+
+	<ul>
+	<li>No API key needed</li>
+	<li>Not a single line of code needed to log user in</li>
+	<li>Server environment not Mandatory (except routing is needed)</li>
+	</ul>
+	<p>Features: Auth, No-SQL DB, Real-time DB, Room, Payment, cron-job, indexing(so that content created with js can be crawled)</p>
+	<h3>
+	Hosting
+	</h3>
+
+	<pre><code>&lt;script src="http://source.upon.one"&gt;&lt;/script&gt;&lt;script class="private"&gt;
+	server.start(uniqueAppName)
+	&lt;/script&gt;
+	</code></pre>
+	<p>Save it and run it as an HTML file from anywhere and your app will be hosted on “yourAppName”.upon.one</p>
+	<p>This library is designed in a way to make server side rendering obselete</p>
+	<h3>
+	Database
+	</h3> 
+	<p>(service comes with already integrated DB )</p>
+	<p>Setting up DB (Chat app example)</p>
+	<p>notice values, required, default &amp; unique (they do what they sound like)</p>
+	<pre><code>
+
+	server.db['YourCollectionName'] = {
+
+	    schema:{
+	        chatHistory:Array,
+	        chatId:'unique',
+	        person1: {required:true,type:String, default:'$user.id'},
+	        person2:{required:true,type:String},
+	        notSeenBy:String
+	        },
+	    permission:{
+
+	      update:{
+	       $or:[ {$equal:['$user.id','$field.person1'] } , {$equal: ['$user.id','$field.person2'] } ]
+	      },
+
+	      read:{
+	       $or:[ {$equal:['$user.id','$field.person1'] } , {$equal: ['$user.id','$field.person2'] } ]
+	      }
+
+	     }
+	     
+	}
+
+
+	// above code belongs to private script tag &amp; above server.start
+
+	</code></pre>
+	<p>Permissions will be processed every time a user tries to interact with the database (Update, Read or Write), This allows developers to query DB from client side without a serverside intermediate.</p>
+	<h3> 
+	Understanding the logic
+	</h3> 
+
+	<p>In <span class="math"><em>f</em><em>i</em><em>e</em><em>l</em><em>d</em>.<em>p</em><em>e</em><em>r</em><em>s</em><em>o</em><em>n</em></span>field is a environment object containing all field which is to be updated our read</p>
+	<p>Here $equal is a baked in function which takes an array as a parameter</p>
+	<p>for example</p>
+	<p><code>$equal:['$field.writer','$user.id']</code></p>
+	<p>I call this logic Object Logic you can tinker with it inside objLogic.js</p>
+	<p>Built in function list</p>
+	<p>Equal, greaterThan, smallerThan, multiply, add, divide, substract, select, function, let, read, write, update</p>
+	<p>Querying DB supports the same syntax. Server.api(logic) for example</p>
+	<pre><code>//for reading
+	server.api({$read:{on:’messages’, where:{chatId:uniqueId} } },console.log)
+
+	//for writing
+	server.api({$write:{on:’messages’, put:{chatId:uniqueId, person2:'chaplin251'}}},console.log)
+
+	//for update
+	server.api({$update:{on:’messages’, where:{chatId:uniqueId}}},console.log)
+
+	//even code
+	server.api({$update:{on:’messages’, where:{chatId: {$add:[60,9]} }}},console.log)</code></pre>
+	<p>Example project: <a href="https://github.com/itsarnavsingh/rubbit">Rubbit</a></p>
+	<h3> 
+	Live Database
+	</h3> 
+
+	<p>To listen for changes to the database you just say server.liveDb(query)</p>
+	<p>query could be: {on:’messages’, where:{chatId:uniqueId} }</p>
+	<p>so whenever chat ’messages’ collection updates. you can listen for them through</p>
+	<pre><code>let aYoungObject = server.liveDb(query) 
+	aYoungObject.on(‘data’, callback) </code></pre>
+	<p>you can also listen for error aYoungObject.on(‘error’, errorCallback)</p>
+	<h3> 
+	Room API
+	</h3> 
+
+	<p>Suppose you want to make an online multiplayer game. Player needs to update their location on the network fast, In this case, writing and reading from a database is very time expensive. The industry standard way of dealing with it, is web sockets, what happens is unlike conventional TCP, Websocket connection doesn’t close (thus the name socket) and it is bi-directional so data can flow in both direction and it's really fast</p>
+	<p>All chat systems rely on WebSockets.</p>
+	<p>let’s say you want to make a Battle Royal game. we will the idea of the room, it is a network in which everyone can send data to everyone when a room full a new room is created.</p>
+	<p>How to create a room</p>
+	<pre><code>let myRoom = server.room(name,capacity)</code></pre>
+	<p>The name could be anything, untill unless all members have it (by default capacity is 2)</p>
+	<p>To receive data</p>
+	<pre><code>let myRoom = server.room(name,capacity)
+	myRoom.on('data',callaback)</code></pre>
+	<p>similarly you can check for creation of room</p>
+	<pre><code>myRoom.on('open',callaback)</code></pre>
+	<p>set callback for when members join and leave</p>
+	<pre><code>myRoom.on('join',callaback)
+
+	myRoom.on('leave',callaback)</code></pre>
+	<p>How to send data to all other members</p>
+	<pre><code>myRoom.broadcast('player position or anything')</code></pre>
+	<p>How to change room</p>
+	<pre><code>myRoom.change('the new rooms name')</code></pre>
+	<p>There is a list of things we didn’t cover, please leave a note on what you are interested</p>
+	<pre><code>payment api + fees api
+	prompt api
+	cron job
+	notification + like + follow apis
+	Or a new feature? right?</code></pre>
+	 
+	Email: arnav010singh@gmail.com
+
+
+
+
+
+</div>
+
+
+
+
+
+
+		</div>
+	
+
+
+	
+
+
+</body>
+
+
+<!-- // todo: apps genre, apps discription, apps logo as svg-->
+<script type="text/javascript" src="./uponOne.js"></script>
+<script class="private" type="text/javascript">
+//here you write server side code
+// var server = new Serve('home','',{searchable:false,mode:'testing'})
+server.start('home',{ bypass:true, searchable:false,local:true } )
+// to do serchable false
+// to do rank this page
+
+
+
+
+</script>
+
+	<script type="text/javascript">
+
+		let userId = null
+
+
+		
+
+		function search(event) {
+			console.log(event)
+			let loadingSites = null 
+			
+			var data 
+
+			if (event) {data = event.target.value}else{ data = ''}
+
+			function previewApp(data){
+				document.getElementById('feed_data').innerHTML = ''
+
+
+				for(let index of data){
+					let icon = `<div id='img' style="background-image: url('${ getAppData(index.name).logo}'); "> </div> ` 
+
+					document.getElementById('feed_data').innerHTML += `<div> 
+							<div class='icon'>${icon}</div> 
+							<a target='_blank' href='${getAppData(index.name).src}'> Open ${index.name}</a>
+							</div>`
+				}
+			}
+
+
+			function getAppData(name){
+				let src = 'http://'+name+'.'+server.info.host+':'+server.info.port
+				let logo = src+'/favicon.ico'
+
+				return {src:src,logo:logo}
+			}
+
+			function previewSites(data){
+				console.log(data)
+				document.querySelector('#sites_data').innerHTML = ''
+
+
+				loadingSites.kill()
+				loadingSites = null
+
+				for(let index of data){
+
+					let app = index.url.split(':')[0]
+					let url = getAppData( app ).src+index.url.split(':')[1]
+
+					document.querySelector('#sites_data').innerHTML += `<div id='result_block'> 
+
+						
+						<div id='describe'>
+	
+
+							<div id='img' style='background-image: url("${ getAppData( app ).logo}") '> </div>
+
+							<a id='head' href='${url}'> ${index.heading} </a>
+						</div>
+						<div id='meta'>
+							<div id='link'> <span>${app}</span> ${url} </div>
+							<div id='text'> ${index.text} </div>
+						</div>
+					</div>`
+
+				}
+
+			}
+
+
+
+
+			if(data){//search sites
+				
+				if(!loadingSites){
+					loadingSites = server.say('searching...')
+					console.log(loadingSites)
+				}
+				server.search(data,'sites').then(previewSites)
+
+			}
+			
+			server.search(data,'app').then(previewApp)//search apps
+
+		}
+
+
+
+
+
+		server.onstart(search)
+		
+	</script>
+
+</html>
+
+
+<!-- email potentiallly inerested users for apps -->
