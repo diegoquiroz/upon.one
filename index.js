@@ -134,7 +134,7 @@ app.get('*', (req, res) => {
 
   }else{
     
-    if(sub === 'home' || sub === ''){
+    if(sub === 'home' || sub === '' || sub === 'www'){
       console.log(sub)
       return res.sendFile('index.html', {root: __dirname })
     }
