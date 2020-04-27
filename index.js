@@ -335,6 +335,8 @@ function setup(){
   return config_domain
 }
 
+//remove adsense script
+
 function frameHtml(res,domain){
 
   let fullHTML=`<html> 
@@ -342,6 +344,9 @@ function frameHtml(res,domain){
                   <meta name="apple-mobile-web-app-capable" content="yes">
                   <meta name="mobile-web-app-capable" content="yes">
                   <meta name='viewport' content='width=device-width, initial-scale=1.0, user-scalable=0' >
+
+                    <script data-ad-client="ca-pub-3138708988719699" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+              
               </head> 
 
         <body></body>
