@@ -133,6 +133,12 @@ app.get('*', (req, res) => {
      sendFile( sub+'-'+path.replace(/\//gi,'') )//for all local file + /favicon.ico' + /manifest.json
 
   }else{
+    
+    if(sub === 'home' || sub === ''){
+      console.log(sub)
+      return res.sendFile('index.html', {root: __dirname })
+    }
+
     frameHtml(res,sub)
   }
 })
@@ -345,8 +351,6 @@ function frameHtml(res,domain){
                   <meta name="mobile-web-app-capable" content="yes">
                   <meta name='viewport' content='width=device-width, initial-scale=1.0, user-scalable=0' >
 
-                    <script data-ad-client="ca-pub-3138708988719699" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
-              
               </head> 
 
         <body></body>

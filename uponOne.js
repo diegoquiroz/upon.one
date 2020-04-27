@@ -243,7 +243,9 @@ global.server = new class{
             var scripts = virtualDiv.querySelectorAll(`script`);
             console.log(scripts)
             var i = scripts.length;
-            while (i--) {
+
+            //0 is false
+            while (i--) {// removal
 
               console.log(scripts[i])
 
@@ -358,7 +360,7 @@ global.server = new class{
                   }                  
                 }
 
-
+                console.log(virtualDiv)
 
                 this.files['/index'] = virtualDiv.innerHTML
                 launch()
@@ -406,6 +408,8 @@ global.server = new class{
 
         if ( !localStorage.getItem( 'user') ){ //if someone tampers with localStorage 
               server.api('$user',function(u){
+
+                if(typeof u === 'undefiend') return server.logout()
 
                 if (u.error) return server.handleError(u)//we dont send data
 
@@ -496,13 +500,13 @@ global.server = new class{
           callback = resolve
         })
       }
-    }loadScript(script,jusUrl) {
+    }loadScript(script,justUrl) {
       return new Promise(function (resolve, reject) {
 
-          if(jusUrl){
-            let src = script
-            let script = document.createElement('script')
-            script.setAttribute('src',script)
+          if(!script){
+            let src = justUrl
+            script = document.createElement('script')
+            script.setAttribute('src',justUrl)
           }
 
 
@@ -533,14 +537,40 @@ global.server = new class{
         loadAllScripts()
 
         async function loadAllScripts(){ //loads script with order
-          let scripts = virtualHtml.querySelectorAll('script')
+          let scripts = document.querySelectorAll('script')
 
 
           for(let index of scripts){
             let scriptClone = document.createElement('script')
             scriptClone.innerHTML = index.innerHTML
+
+
+            for (let attr of index.attributes){
+            	let name = attr.name
+            	let val = attr.textContent
+            	scriptClone.setAttribute(name,val)
+            }
+
+            console.log(index,scriptClone)
+
+
+          
+
+
             await server.loadScript(scriptClone)
+            // document.removeChild(index)         
           }
+
+
+		// let scriptCloneADsense = document.createElement('script')
+  //         scriptCloneADsense.setAttribute('data-ad-client','ca-pub-3138708988719699')
+  //         scriptCloneADsense.setAttribute('async','')
+  //         scriptCloneADsense.setAttribute('src','https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js')
+  //         server.loadScript(scriptCloneADsense).then( ()=>{ console.log('ADSENSE APPENDED') } ).catch(error=>{
+  //         	console.log(error)
+  //         })
+          //Adsense
+
 
           server.declareLoaded()
         }
@@ -1212,7 +1242,7 @@ global.server = new class{
 
 
       if (window.paypal) return engage()
-      if(!window.paypal) server.loadScript('https://www.paypal.com/sdk/js?client-id='+server.Paypalclient_id+'&currency=USD').then(engage)
+      if(!window.paypal) server.loadScript(null,'https://www.paypal.com/sdk/js?client-id='+server.Paypalclient_id+'&currency=USD').then(engage)
       // fetch(,{mode: 'no-cors'}).then( res=>{ res.text().then(startSettingUp) } )
 
 
