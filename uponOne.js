@@ -1638,7 +1638,7 @@ global.server = new class{
                   background: #000000d6;
                   padding: 0 19%;
                   padding-top: 5vh;
-                  position: absolute;
+                  position: fixed;
                   height: 95vh;
                   width: 62%;
                   top: 0;
