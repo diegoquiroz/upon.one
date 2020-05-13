@@ -49,6 +49,7 @@ let loader = {
         })(c)
 
 
+        //the uponOne.js file is big that way it is has loading bar
         let serve = document.createElement('script')
 
         document.getElementsByClassName('hostea')[0].getAttribute('mode') == 'testing'? serve.src = 'http://localhost:8080/uponOne.js':serve.src = 'http://serverination.herokuapp.com/uponOne.js'

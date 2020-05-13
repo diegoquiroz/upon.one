@@ -9,13 +9,14 @@ const handleParse = require('./handleParse.js')
 
 function sendAppSource(fileName,callback){//find one
 
-  db.appSource.findOne( {url:fileName} , function(err_o, info_o){
-
+  db.apps.findOne( {name:fileName.toLowerCase()} , function(err_o, info_o){
+    // console.log(fileName,info_o)
     // console.log(fileName, info_o)
     if(!info_o) return callback( { error:'404 '+fileName+' not found' } )
     if (err_o) return console.log(err_o)
     
-    if(info_o) callback( { data: info_o.data } ) 
+    
+    if(info_o) callback( { data: {source:info_o.source,loginByDefault:info_o.loginByDefault} } ) 
               
     })            
 }
@@ -88,7 +89,12 @@ function handlePost(req, res, userData,userMeta){
         res.send({data:data,meta:meta})
       }
 
-      if (!userData)  return sendApiData({error:'Login required'})
+      //login exceptions
+      // if (!userData )  return sendApiData({error:'Login required'})
+      //do it only for red, write and update
+
+
+
       var appName = req.body.name
 
       // console.log(qBody,appName)
@@ -685,6 +691,11 @@ function handlePost(req, res, userData,userMeta){
       break//rename login
 
     case'host':
+      
+      function failed(error,code){
+        if (!code) code = 400
+        res.send({code:code, error:error})
+      }
 
       qBody.db = JSON.stringify(qBody.db)
 
@@ -695,10 +706,15 @@ function handlePost(req, res, userData,userMeta){
       if (!qBody.meta) qBody.meta = null
 
       if (qBody.searchable === undefined )qBody.searchable = true
-
       if ( typeof qBody.searchable !== 'boolean' ) qBody.searchable = false
+
+      if (qBody.loginByDefault === undefined ) qBody.loginByDefault = true
+      if ( typeof qBody.loginByDefault !== 'boolean' ) qBody.loginByDefault = false
        //fixed searchable bug but still apps wont be affected
       
+      if ( typeof qBody.name !== 'string' ) failed('name must be string')
+
+      qBody.name = qBody.name.toLowerCase()
 
       if (qBody.preCode) qBody.preCode   = JSON.stringify(qBody.preCode)
       if (qBody.fees) qBody.fees  =  JSON.stringify(qBody.fees)
@@ -947,16 +963,12 @@ function handlePost(req, res, userData,userMeta){
             }) })
       }
 
-      function failed(error,code){
-        if (!code) code = 400
-        res.send({code:code, error:error})
-      }
+
 
       checkAppPermission(()=>{
 
        saveDB(()=>{
 
-        saveAppSource(()=>{
 
           addCron(()=>{
 
@@ -964,7 +976,7 @@ function handlePost(req, res, userData,userMeta){
 
           })
 
-        })
+
 
        }); 
 
@@ -988,6 +1000,8 @@ function handlePost(req, res, userData,userMeta){
               meta:qBody.meta,
               searchable:qBody.searchable,
               owner:userData.id,
+              source:qBody.response,
+              loginByDefault:qBody.loginByDefault
             })
 
             newapp.save(error=>{
@@ -1003,7 +1017,9 @@ function handlePost(req, res, userData,userMeta){
               meta:qBody.meta,
               preCode: qBody.preCode,
               fees:qBody.fees,
-              searchable:qBody.searchable
+              searchable:qBody.searchable,
+              source:qBody.response,
+              loginByDefault:qBody.loginByDefault
             },{new: true,runValidators: true}).then(doc => {
 
 
@@ -1023,7 +1039,7 @@ function handlePost(req, res, userData,userMeta){
       break
 
     case'getAppSource':
-      sendAppSource( qBody.app+'/index', (data)=>{res.send(data) } )
+      sendAppSource( qBody.app, (data)=>{res.send(data) } )
       break
     case'search':
       let query = qBody.query

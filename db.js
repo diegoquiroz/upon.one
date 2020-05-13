@@ -13,7 +13,12 @@ let apps = new mongoose.Schema({
   owner:String,
   about:String,
   meta:String,
+  source:String,
   fees:String,
+  loginByDefault:{
+    type:Boolean,
+    default:true,
+  },
   searchable:{
         type: Boolean,
         default: true},
@@ -224,19 +229,10 @@ var files = new mongoose.Schema({
   encoding:String//daily,weekly,monthly,quaterly
 })
 
-let appSource = new mongoose.Schema({
-  url:{ 
-      type: String,
-      required: true,
-      unique: true,
-    },
-  hash:String,
-  data:String
-})
+
 
 module.exports = {
 	apps: mongoose.model('apps', apps),
-  appSource: mongoose.model('appSource', appSource),
   users: mongoose.model('user',users),
   scrap: mongoose.model('scrap',scrap),
   files: mongoose.model('files',files),

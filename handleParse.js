@@ -1,6 +1,8 @@
 const db = require('./db.js')
 const handleQuery = require('./handleQuery.js')
 var {parse,helperFunctions} = require('./lib/objLogic.js')
+const fetch = require("node-fetch");
+var pos = require('node-pos').partsOfSpeech;
 var { getUserData,checkBalance,random,renameOutput,setNewVerificationCode,sendEmail,sendVerificationEmail,addUniquePrefix } = require('./functions.js')
 // let checkBalance = functions.checkBalance
 // let random = functions.random
@@ -99,15 +101,43 @@ function handleParse(prop,range){
                 this.update = this.update.bind(this)
                 this.erase = this.erase.bind(this)
                 this.log = this.log.bind(this)
+                this.log = this.log.bind(this)
 
                 if(prop.log) this.logs = prop.log
               }
 
 
-              log(string){
+              exceptionForLogin(functionName,exceptionList2){
+                let exceptionList1 = ['pos','googleSearch','youtubeSearch']
+                if (!this.user && !exceptionList1.includes(functionName) && !exceptionList2.includes(functionName) ){
+                  console.log(exceptionList1.includes(functionName)+' '+functionName)
+                  return {allowed:false,error:'Login required'}
+                }
+            
+                return {allowed:true}
+              }log(string){
                 // console.log(string,'loggin')
                 if (this.logs) this.logs.push(string)
                 return string
+              }googleSearch(string){
+                let url = `https://www.googleapis.com/customsearch/v1?limit=4&key=AIzaSyDmj2fG7vMUR50j9n_TtYDcYHGqBw0eB_s&cx=013886194400589540356:b4shtzahg_0&q=${string}`
+                return fetch(url).then(function(response){return response.json();})
+              }youtubeSearch(string){
+                let url = `https://content.googleapis.com/youtube/v3/search?q=${string}&maxResults=8&part=snippet&key=AIzaSyDbxoOtKFsBdUbgg85UMhwWClUzlgSu7yw`
+                return fetch(url).then(function(response){return response.json();})
+              }pos(string){
+                return new Promise(resolve=>{
+
+                  //replaces everything except numbers and words
+//                 \w stands for "word character", usually [A-Za-z0-9_]. Notice the inclusion of the underscore and digits.
+
+//                 \s stands for "whitespace character". It includes [ \t\r\n].
+//even full stop and commas
+//^ means except
+                  pos(string.replace(/[^\w\s]/g,''), function (data) {
+                    resolve(data);
+                  })
+                })
               }payToUser(obj,range){
 
 
@@ -152,7 +182,7 @@ function handleParse(prop,range){
 
                 return new Promise(resolve=>{
 
-                    if (!userData) return res.send({error:'login required'})
+
 
                     
 

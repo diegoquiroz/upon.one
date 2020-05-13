@@ -345,6 +345,8 @@ function setup(){
 
 function frameHtml(res,domain){
 
+   
+
   let fullHTML=`<html> 
                 <head>
                   <meta name="apple-mobile-web-app-capable" content="yes">

@@ -13,7 +13,7 @@
 // let global = window
 
 
-global.server = new class{
+global.one = new class{
     constructor(){
       this.info={}//to do differentiation
       this.configuration={ cron:{daily:[],weekly:[],monthly:[],quaterly:[],yearly:[]}, fees:{} }
@@ -25,7 +25,7 @@ global.server = new class{
       this.qued = {query:[],room:[]}
 
       this.utility = this.utilityFunctions()
-      this.api = this.api.bind(this)
+      this.query = this.query.bind(this)
       this.declareLoaded = this.declareLoaded.bind(this)
 
       this.ask = this.prompt.bind(this)
@@ -40,8 +40,8 @@ global.server = new class{
       // this.declareComponents = this.declareComponents.bind(this)
 
       // window.addEventListener('load',this.declareComponents)
-    }start(...arg){
-      console.log('starting')
+    }run(...arg){
+      console.log('running....')
 
       prepSourceExtraction = prepSourceExtraction.bind(this)
       launch = launch.bind(this)
@@ -52,17 +52,19 @@ global.server = new class{
         arg[1] = {job:'host',mode:'production'}
       }
 
+      //if job is undefined there is no problem as long as it is regarded as hosting
+
       if(typeof arg[1] === 'string'){
         console.warn('parameter 2 now takes config')
         arg[1] = {}
       }
 
       if (arg[1].local) this.local = arg[1].local
-      
+      if (arg[1].loginByDefault) this.loginByDefault = arg[1].loginByDefault
 
 
 
-      Object.assign(this.configuration,arg[1])
+      Object.assign(this.configuration,arg[1]) //transfer all variables of arg 1 into this.configuration
 
       this.mode = arg[1].mode
       this.job = arg[1].job
@@ -80,14 +82,17 @@ global.server = new class{
           this.info.port = 80
         }
 
+        // console.log(this)
+
         this.info.serverUrl = 'http://'+this.info.host+':'+this.info.port
 
         if(this.info.port === 80) this.info.serverUrl = 'http://www.'+this.info.host+':'+this.info.port
-        server.saveUserData()
+        one.saveUserData()
 
 
-      if (arg[1].bypass) this.bypass = arg[1].bypass
-      if (arg[1].beta) this.beta = arg[1].beta
+
+      // if (arg[1].bypass) this.bypass = arg[1].bypass
+      // if (arg[1].beta) this.beta = arg[1].beta
 
       if (this.job == 'receive'){
         return launch()
@@ -109,7 +114,7 @@ global.server = new class{
 
                 this.post({data:this.configuration,type:'host',cookie: localStorage.getItem('hostea')},data=>{
                     
-                    if (data.error) return server.deploying.update(data.error)//error occured
+                    if (data.error) return one.deploying.update(data.error)//error occured
                       
                     let port = this.info.port
 
@@ -117,8 +122,8 @@ global.server = new class{
                     this.print('http://'+this.configuration.name+'.'+this.info.host+':'+port)
                     
 
-                      server.deploying.kill()
-                      server.declareLoaded()
+                      one.deploying.kill()
+                      one.declareLoaded()
 
                 })         
           
@@ -128,18 +133,33 @@ global.server = new class{
 
           //server go to host, and it will be chached and server request to get that file
           
-          this.post( {type: 'getAppSource', data:{ app:this.configuration.name } }, (data)=>{
+	        this.post( {type: 'getAppSource', data:{ app:this.configuration.name } }, (appinfo)=>{
 
-            // console.log(data,'received')
+	            // console.log(data,'received')
 
-            if(data.error){
-              document.body.innerHTML = '404 Page Not Found'
-              return console.log(data.error)
-            } 
+	            if(appinfo.error){
+	              document.body.innerHTML = '404 Page Not Found'
+	              return console.log(appinfo.error)
+	            } 
 
-            this.newpage( data.data)
+	            console.log('app info received',appinfo)
+	            //before page is parsed do login
+	            if ( !localStorage.getItem('hostea') ){
 
-          })
+	            	if(appinfo.data.loginByDefault === false) return this.newpage( appinfo.data.source)
+
+	            	if ( localStorage.getItem('loginByDefault') ){//if exist and is true
+	            		return this.newpage( appinfo.data.source)
+	            	}
+
+	          		return one.setupLogin().then(()=>{
+	          			this.newpage( appinfo.data.source)
+	          		})
+
+        		}
+	            this.newpage( appinfo.data.source)
+
+	        })
           //to do here make new post request for chache
         }
 
@@ -151,17 +171,15 @@ global.server = new class{
         this.callback = this.job == 'receive'? receive : host //either host will run or receive will
 
         //login before data is loaded so that password is not tracked
-        if ( !localStorage.getItem('hostea') ){
-          return server.login().then(this.callback)
-        } //for both host and receiving
-        this.callback()
+
+        this.callback()//callback could be host or receive
       }
 
       async function prepSourceExtraction(){
 
 
             if ( !localStorage.getItem('hostea') ){
-              return server.login().then(()=>{ prepSourceExtraction(arg) })
+              return one.setupLogin().then(()=>{ prepSourceExtraction(arg) })
             } //for both host and receiving
 
 
@@ -178,7 +196,7 @@ global.server = new class{
 
             this.tmp = {}
 
-            this.configuration.name = arg[0]
+            this.configuration.name = arg[0].toLowerCase()
 
             function removeTypeFunction(obj){
 
@@ -218,20 +236,22 @@ global.server = new class{
             if (this.configuration.name.indexOf('beta') !== -1) return console.warn('app name cant have beta use beta:true in the second argument')
 
 
-            if(this.beta === true){
+            if(this.configuration.beta === true){
               this.configuration.name = 'beta-'+this.configuration.name
               this.configuration.searchable = false
               //make a new instance that shares the same db? no does not shares the database. if we wont keep the database common how can we test if new users like it or not
             }
 
 
-            if (this.bypass === true){
+            if (this.configuration.bypass === true){
               console.log('bypassing')
-              if(!localStorage.getItem('hostea')) return server.login().then(server.declareLoaded)
+              if(!localStorage.getItem('hostea')) return one.setupLogin().then(one.declareLoaded)
 
-              server.declareLoaded()
+              one.declareLoaded()
             //prompt login if 
               return
+            }else{
+            	console.log(this,'not bypassing')
             }
 
 
@@ -269,7 +289,7 @@ global.server = new class{
             
 
             console.log('deploying...')
-            server.deploying = server.say('deploying...')
+            one.deploying = one.say('deploying...')
 
             
 
@@ -280,16 +300,16 @@ global.server = new class{
                 let blob = await icon.blob()
 
                 if (!name) name = location.split('/')[ location.split('/').length -1 ]
-                return await server.utility.upload(blob,name) //upload and get the new link, newAttributes.href so that it can be overridden
+                return await one.utility.upload(blob,name) //upload and get the new link, newAttributes.href so that it can be overridden
             }
 
             async function newIconOrManifest(index){
 
                 let OldHref = index.getAttribute('href')
-                let newHref = null
+                let newHref = index.getAttribute('href')//deafult value
                 let rel = index.getAttribute('rel')
                 // if (attributeHref.indexOf('http') !== -1 && attributeHref.indexOf('https') !== -1 ) {
-                //   server.tmp.link.push( getAttributeObject(index) )
+                //   one.tmp.link.push( getAttributeObject(index) )
                 //   hrefToStore = attributeHref
                 // }else{ //we will upload external images to /favicon as well for home page
 
@@ -312,7 +332,7 @@ global.server = new class{
                   console.log('uploaded ',hrefToStore)
                   // direct to the server
                   return newHref
-                  // server.tmp.link.push(newAttributes)
+                  // one.tmp.link.push(newAttributes)
                   //render link tags
                 // }
 
@@ -322,7 +342,7 @@ global.server = new class{
 
             for(let index of virtualDiv.querySelectorAll('link') ){
 
-              let href = null
+              let href = index.getAttribute('href')
 
               let rel = index.getAttribute('rel')
 
@@ -374,16 +394,16 @@ global.server = new class{
 
 
     }addFees(value, flavour){
-      server.configuration.fees[flavour] = value
+      one.configuration.fees[flavour] = value
     }declareLoaded(){
       console.log('declaring loaded')
       //login is not done here because of security reasons
-      if(localStorage.getItem('hostea')) if( !localStorage.getItem('user') ) return server.saveUserData().then(doLoad)
+      if(localStorage.getItem('hostea')) if( !localStorage.getItem('user') ) return one.saveUserData().then(doLoad)
     
 
       function doLoad(){
-        if (server.onload)  server.onload()
-        server.loaded = true
+        if (one.onload)  one.onload()
+        one.loaded = true
       }
 
       doLoad()
@@ -407,11 +427,11 @@ global.server = new class{
         if (!localStorage.getItem( 'hostea')) return resolve()
 
         if ( !localStorage.getItem( 'user') ){ //if someone tampers with localStorage 
-              server.api('$user',function(u){
+              one.query('$user',function(u){
 
-                if(typeof u === 'undefiend') return server.logout()
+                if(typeof u === 'undefiend') return one.logout()
 
-                if (u.error) return server.handleError(u)//we dont send data
+                if (u.error) return one.handleError(u)//we dont send data
 
 
                 if(!u) throw Error(u)
@@ -425,7 +445,7 @@ global.server = new class{
 
       })
 
-    }api(query,functionR){
+    }query(query,functionR){
 
 
       
@@ -433,7 +453,7 @@ global.server = new class{
       
       function executeApi(){
         //to do: remove response process json on post
-        server.post({  name:this.configuration.name, data:query,type:'db',cookie:localStorage.getItem("hostea") }, (apiData) =>{
+        one.post({  name:this.configuration.name, data:query,type:'db',cookie:localStorage.getItem("hostea") }, (apiData) =>{
 
 
           if(apiData.error === 'Login required'){
@@ -441,9 +461,9 @@ global.server = new class{
 
         
             throw Error('API requires login reload page')
-            // server.login().then(()=>{
+            // one.setupLogin().then(()=>{
 
-            //     server.api(query,functionR)
+            //     one.query(query,functionR)
 
             // })
             return
@@ -557,7 +577,7 @@ global.server = new class{
           
 
 
-            await server.loadScript(scriptClone)
+            await one.loadScript(scriptClone)
             // document.removeChild(index)         
           }
 
@@ -566,13 +586,13 @@ global.server = new class{
   //         scriptCloneADsense.setAttribute('data-ad-client','ca-pub-3138708988719699')
   //         scriptCloneADsense.setAttribute('async','')
   //         scriptCloneADsense.setAttribute('src','https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js')
-  //         server.loadScript(scriptCloneADsense).then( ()=>{ console.log('ADSENSE APPENDED') } ).catch(error=>{
+  //         one.loadScript(scriptCloneADsense).then( ()=>{ console.log('ADSENSE APPENDED') } ).catch(error=>{
   //         	console.log(error)
   //         })
           //Adsense
 
 
-          server.declareLoaded()
+          one.declareLoaded()
         }
 
 
@@ -599,7 +619,7 @@ global.server = new class{
 
       console.log('%c'+data, 'color: Green; background-color: LightGreen; padding: 2px 5px; border-radius: 2px');//type of print: error, warning, greeting
     }followOrUn(id,callback){
-      server.api({$follow:id},callback)//to do
+      one.query({$follow:id},callback)//to do
     }onstart(newfn){
 
       //also consider that the receive needs to be completed
@@ -638,15 +658,15 @@ global.server = new class{
     }random(){
       return Math.random().toString(36).substring(2, 15)+Math.random().toString(36).substring(2, 15)
     }killSocket(type){
-      server.socket[type].close();
-      server.socket[type] = null
+      one.socket[type].close();
+      one.socket[type] = null
     }callSocketFunction(msg,type){
 
       //to de return type as well
       
 
 
-      let functionTobeCalled = server.socketFunctions[type][msg.token]
+      let functionTobeCalled = one.socketFunctions[type][msg.token]
       if (!functionTobeCalled) return console.warn('websocket '+msg.token+' message: '+msg.data+' not caught '+type,msg)
       if (!functionTobeCalled[msg.type]) return console.warn('websocket '+msg.type+' not caught',msg)
 
@@ -658,57 +678,57 @@ global.server = new class{
       functionTobeCalled(msg.data,msg)
     }setupSocket(query,type){
 
-      server.socket[type] = new WebSocket('ws://'+this.info.serverUrl.replace('http://','')+'/'+type)
+      one.socket[type] = new WebSocket('ws://'+this.info.serverUrl.replace('http://','')+'/'+type)
 
-      // console.log(server.socket[type])
+      // console.log(one.socket[type])
 
-      server.socket[type].onopen = function (event){
+      one.socket[type].onopen = function (event){
 
-        server.socket[type].onmessage = function (event){
+        one.socket[type].onmessage = function (event){
 
           let msg = JSON.parse(event.data)
 
           //setup socket won't be called more than once, how fix works? type will sustain because it is only
           //defined once per type we just need to find the appropriate reception object
 
-          let recep = server.socketFunctions[type][msg.token]
+          let recep = one.socketFunctions[type][msg.token]
 
           // console.log('new unique',JSON.parse(event.data) ,recep)
           if(msg.unique) recep.unique = msg.unique
             
-          server.callSocketFunction(msg,type)
+          one.callSocketFunction(msg,type)
         }
 
-        // console.log(server.socket[type])
-        server.newSocketJob(query,type)
+        // console.log(one.socket[type])
+        one.newSocketJob(query,type)
 
         //for all the qued connection as well
 
-        for(let index of server.qued[type]){
-          server.newSocketJob(index,type)
+        for(let index of one.qued[type]){
+          one.newSocketJob(index,type)
         }
       };
 
       // return receptionObject
     }newSocketJob(msg,type,receptionObject){
 
-      // if (server.socket[type]) return server.socket[type]
+      // if (one.socket[type]) return one.socket[type]
 
       function broadcast(data){
           if (!this.unique) return console.log('Unique not assigned')
-          server.socket.room.send( JSON.stringify( {app:server.configuration.name, purpose:'broadcast', content:data, token:this.id, broadcastToken:this.unique  } ) )
+          one.socket.room.send( JSON.stringify( {app:one.configuration.name, purpose:'broadcast', content:data, token:this.id, broadcastToken:this.unique  } ) )
       }
 
       function update(query){
           //server side handle if query is null
-          if (!server.socket.query) return 'socket not instantiated'
-          server.socket.query.send( JSON.stringify( {query:query, token:this.id, purpose:'update'} ) )
+          if (!one.socket.query) return 'socket not instantiated'
+          one.socket.query.send( JSON.stringify( {query:query, token:this.id, purpose:'update'} ) )
 
       }
 
       function leave(){
-        server.socketFunctions['room'][this.id] = null
-        server.socket.room.send( JSON.stringify({ unique:this.unique, currentToken:this.id, purpose:'leave'}) )
+        one.socketFunctions['room'][this.id] = null
+        one.socket.room.send( JSON.stringify({ unique:this.unique, currentToken:this.id, purpose:'leave'}) )
       }
 
       function change(newToken,limit){
@@ -717,13 +737,13 @@ global.server = new class{
         if (this.unique === null) return console.warn('in the process of changing')
 
         if (!limit) limit = 2
-        server.socketFunctions['room'][this.id] = null
-        server.socketFunctions['room'][newToken] = this
+        one.socketFunctions['room'][this.id] = null
+        one.socketFunctions['room'][newToken] = this
 
-        server.socket.room.send( 
+        one.socket.room.send( 
           JSON.stringify({limit:limit, 
                         cookie: localStorage.getItem('hostea'),
-                        app:server.configuration.name,
+                        app:one.configuration.name,
                         unique:this.unique, 
                         newToken:newToken, 
                         currentRoomLabel:this.id, 
@@ -737,7 +757,7 @@ global.server = new class{
           this['on'+type] = callback
       }
 
-      if(!server.socketFunctions[type][msg.token]) server.socketFunctions[type][msg.token] = new class{  
+      if(!one.socketFunctions[type][msg.token]) one.socketFunctions[type][msg.token] = new class{  
           constructor(){
           this.id = msg.token
           this.on = on.bind(this)
@@ -751,56 +771,57 @@ global.server = new class{
           if (type == 'query') this.update = update.bind(this)
       }}
 
-      // server.socketFunctions[type][msg.token] = receptionObject
+      // one.socketFunctions[type][msg.token] = receptionObject
 
-      // console.log(msg,server.socket[type])
+      // console.log(msg,one.socket[type])
 
-      if(!server.socket[type]){
-        server.setupSocket(msg,type)
+      if(!one.socket[type]){
+        one.setupSocket(msg,type)
 
-        return server.socketFunctions[type][msg.token]
+        return one.socketFunctions[type][msg.token]
       } 
         
 
 
-      if(!server.socket[type].readyState){
+      if(!one.socket[type].readyState){
         this.qued[type].push( msg )
-        return server.socketFunctions[type][msg.token]
+        return one.socketFunctions[type][msg.token]
       }
 
       //messsage to make a room is to be sent after conversation starts between the server
       
       
-      msg.app = server.configuration.name
+      msg.app = one.configuration.name
       msg.cookie = localStorage.getItem('hostea')
 
       // console.log('sending..',msg)
-      server.socket[type].send( JSON.stringify(msg) );
+      one.socket[type].send( JSON.stringify(msg) );
       
-      return server.socketFunctions[type][msg.token]
+      return one.socketFunctions[type][msg.token]
     }liveDb(query){
       //to do it doesnot needs to be async anymore 
-      if (!localStorage.getItem('hostea') ) return server.logout()
+      if (!localStorage.getItem('hostea') ) return one.logout()
 
-      query = {token:server.random() ,query:query}
-      return server.newSocketJob(query,'query')
+      query = {token:one.random() ,query:query}
+      return one.newSocketJob(query,'query')
     }room(token,limit){
      
      //make server login ui a promise
-      if (!localStorage.getItem('hostea') ) return server.logout()
+      if (!localStorage.getItem('hostea') ) return one.logout()
 
       let query = {limit:limit,token:token}
       query.purpose = 'join'
-      return server.newSocketJob(query,'room')
+      return one.newSocketJob(query,'room')
     }logout(){
       localStorage.removeItem('user')
       localStorage.removeItem('hostea')
+      localStorage.removeItem('loginByDefault')
       location.reload();
     }search(query,type){
 
       return new Promise(resolve=>{
 
-        server.post({type:'search',data:{  query:query, type:type } },data=>{
+        one.post({type:'search',data:{  query:query, type:type } },data=>{
           resolve(data)
         })
 
@@ -812,19 +833,19 @@ global.server = new class{
 
         function signUp(cred){
 
-            let signingup = server.say(' just a second...',300)
+            let signingup = one.say(' just a second...',300)
 
-            server.post({type:'loginOrSignup',data:{ tags:cred.interest, newAccount:true,email:cred.email , username:cred.username.toLowerCase(), password:cred.password }},data=>{
+            one.post({type:'loginOrSignup',data:{ tags:cred.interest, newAccount:true,email:cred.email , username:cred.username.toLowerCase(), password:cred.password }},data=>{
 
               signingup.kill()
               //if the password was wrong handled
 
-              if (data.error) return server.say(data.error)
+              if (data.error) return one.say(data.error)
 
               proceedToVerifyEmail() 
 
               function proceedToVerifyEmail(){
-                server.verifyEmail( data.username ).then(resolve)
+                one.verifyEmail( data.username ).then(resolve)
                 loginPrompt.kill()
               }
               
@@ -837,7 +858,7 @@ global.server = new class{
         //placeholder for div
         //not to do notify user update
         //to do placeholder
-        let loginPrompt = server.prompt({h1:'Sign Up'},{ username:null, 
+        let loginPrompt = one.prompt({h1:'Sign Up'},{ username:null, 
           password:{type:"password"}, 
           email:null,
           interest:{ array:5, placeholder:'interest' } },{ 'sign up': signUp })
@@ -851,8 +872,8 @@ global.server = new class{
 
         function changePassword(cred){
 
-          let processingRequest = server.say('just a second')
-           server.post({ type:'verify_email_access',
+          let processingRequest = one.say('just a second')
+           one.post({ type:'verify_email_access',
 
             data:{
               username:cred.username,
@@ -870,7 +891,7 @@ global.server = new class{
             if (data.code === 200){
               if (!data.msg) throw Error('username not found')
               localStorage.setItem('hostea',data.msg)
-              server.saveUserData().then(newUserdata=>{
+              one.saveUserData().then(newUserdata=>{
                 loginPrompt.kill() //to do rename login prompt
                 resolve()
               })
@@ -881,18 +902,18 @@ global.server = new class{
 
 
         //not to do notify user update
-        let loginPrompt = server.prompt({h1:'check your email for verification code', h5:msg},{ username:null,newPassword:{type:"password", placeholder:'new password'},verificationCode:{type:"password"} },{login: changePassword})
+        let loginPrompt = one.prompt({h1:'check your email for verification code', h5:msg},{ username:null,newPassword:{type:"password", placeholder:'new password'},verificationCode:{type:"password"} },{login: changePassword})
 
       }) //benifit of different prompts? reusable
     }capitalize(string) {
       return string.charAt(0).toUpperCase() + string.slice(1);
     }async readLogs(){
-        let readLogs = await server.post({ type:'readLogs', data:{app:server.configuration.name}, cookie:localStorage.getItem("hostea") })
+        let readLogs = await one.post({ type:'readLogs', data:{app:one.configuration.name}, cookie:localStorage.getItem("hostea") })
 
         return readLogs
     }async runCronManually(type){
-      // server.runCronManually('daily').then(console.log)
-        let cronLog = await server.post({ type:'runCRON', data:{app:server.configuration.name,type:type}, cookie:localStorage.getItem("hostea") })
+      // one.runCronManually('daily').then(console.log)
+        let cronLog = await one.post({ type:'runCRON', data:{app:one.configuration.name,type:type}, cookie:localStorage.getItem("hostea") })
 
         return cronLog
 
@@ -900,14 +921,14 @@ global.server = new class{
         
       return new Promise(resolve=>{
 
-        let sending_code = server.say('just a second')
+        let sending_code = one.say('just a second')
         engage()
 
         let loginPrompt = null
         let user = null
 
         function engage(){
-          server.api('$user',(data)=>{
+          one.query('$user',(data)=>{
             if(!data){
               sending_code.kill()
               return resolve(false)
@@ -924,9 +945,9 @@ global.server = new class{
           function emailSent(data){
             sending_code.kill()
 
-            if (data.error) return server.say(data.error)
+            if (data.error) return one.say(data.error)
 
-            loginPrompt = server.ask(
+            loginPrompt = one.ask(
 
               {title:'Editing profile',image:user.profile},
 
@@ -944,7 +965,7 @@ global.server = new class{
 
           // return emailSent({}) //bypassing for testing
 
-          server.post({ type:'sendCodeEmail',cookie:localStorage.getItem("hostea") },emailSent)
+          one.post({ type:'sendCodeEmail',cookie:localStorage.getItem("hostea") },emailSent)
           
         }
 
@@ -963,14 +984,14 @@ global.server = new class{
           if (cred.profile.files.length === 0){
             profileImage = user.profile
           }else{
-            profileImage = await server.utility.upload( cred.profile.files[0], user.username+'profile' )//it is still not unique because for every app it will be different
+            profileImage = await one.utility.upload( cred.profile.files[0], user.username+'profile' )//it is still not unique because for every app it will be different
             profileImage = profileImage.url
           }
 
 
           if (!profileImage) profileImage = user.profile
 
-          server.post({
+          one.post({
             type:'editProfile',
             cookie:localStorage.getItem("hostea"), 
             data:{
@@ -982,11 +1003,11 @@ global.server = new class{
               profile:profileImage
             }
           },data=>{
-            if (data.error) return server.say(data.error)
+            if (data.error) return one.say(data.error)
 
             loginPrompt.kill()
             localStorage.removeItem('user')
-            server.saveUserData().then(newUserdata=>{
+            one.saveUserData().then(newUserdata=>{
               resolve(newUserdata)
             })
             // location.reload();
@@ -1004,20 +1025,20 @@ global.server = new class{
         let foundPerson = null
 
         function sendVerificationCode(cred){
-          let notifySending = server.say('just a second')
-          server.post({ type:'forgot_password', data:{emailOrusername:cred.username}  },data=>{
+          let notifySending = one.say('just a second')
+          one.post({ type:'forgot_password', data:{emailOrusername:cred.username}  },data=>{
             notifySending.kill()
-            if (data.error) return server.say(data.error)
+            if (data.error) return one.say(data.error)
             // console.log(data)
-            server.changePassword(data.msg).then(resolve)
+            one.changePassword(data.msg).then(resolve)
           })
           
         }
 
-        let loginPrompt = server.prompt({h1:'Your username or email'},{ username:{placeholder:'username or email'} },{'send verification Code': sendVerificationCode })
+        let loginPrompt = one.prompt({h1:'Your username or email'},{ username:{placeholder:'username or email'} },{'send verification Code': sendVerificationCode })
       
       })      
-    }whatDevicesHaveMyLogin(){//save it somewhere it is being shown for the last time
+    }whatDevicesHaveMysetupLogin(){//save it somewhere it is being shown for the last time
     }verifyEmail(username){
       //not mandatory, will happen afterwards, email verified as a variable as well
 
@@ -1026,8 +1047,8 @@ global.server = new class{
 
 
         function verify_email(cred){
-           server.post({ type:'verify_email_access', data:{ username:username, job:'verify_email',verificationCode:cred.code.trim() }  },data=>{
-            if (data.error) return server.say(data.error)
+           one.post({ type:'verify_email_access', data:{ username:username, job:'verify_email',verificationCode:cred.code.trim() }  },data=>{
+            if (data.error) return one.say(data.error)
             if (data.code === 200){
               loginPrompt.kill()
               localStorage.setItem('hostea',data.msg)
@@ -1038,7 +1059,7 @@ global.server = new class{
 
 
         //not to do notify user update
-        let loginPrompt = server.prompt({h1:'hi '+username+' check your email for verification code'},{ code:{type:"password"} },{'verify email': verify_email})
+        let loginPrompt = one.prompt({h1:'hi '+username+' check your email for verification code'},{ code:{type:"password"} },{'verify email': verify_email})
 
       }) //benifit of different prompts? reusable
 
@@ -1060,7 +1081,7 @@ global.server = new class{
       let width = (window.innerWidth > 0) ? window.innerWidth : screen.width;
       if (width < 500)  return true
       return false
-    }login(){
+    }setupLogin(){
 
 
       //to do set placeholder, set cookie
@@ -1068,26 +1089,26 @@ global.server = new class{
 
       return new Promise(resolve=>{
 
-        if (server.loginResolve) return server.loginResolve //if login is called twice all are given the same resolve
-        server.loginResolve = resolve
+        if (one.loginResolve) return one.loginResolve //if login is called twice all are given the same resolve
+        one.loginResolve = resolve
 
-        function login(cred){
+        function setupLogin(cred){
 
-            server.post({type:'loginOrSignup',data:{ newAccount:false, username: cred.username.toLowerCase() , password:cred.password }},data=>{
+            one.post({type:'loginOrSignup',data:{ newAccount:false, username: cred.username.toLowerCase() , password:cred.password }},data=>{
 
               //if the password was wrong handled
               console.log(data,'login')
               if(data.error){
 
-                if(data.error === 'account not verified') return server.verifyEmail(cred.username).then(resolve)
+                if(data.error === 'account not verified') return one.verifyEmail(cred.username).then(resolve)
               } 
 
-              data.code == 200? completeLogin( data ) : server.say(data.error)
+              data.code == 200? completesetupLogin( data ) : one.say(data.error)
 
-              function completeLogin(data){
+              function completesetupLogin(data){
                 loginPrompt.kill()
                 localStorage.setItem('hostea',data.msg)
-                server.saveUserData().then(()=>{ resolve( data ) })
+                one.saveUserData().then(()=>{ resolve( data ) })
                 
               }
 
@@ -1095,17 +1116,20 @@ global.server = new class{
         }
 
         function forgotPassword(cred){
-          server.forgotPassword().then( ()=>{ resolve() })
+          one.forgotPassword().then( ()=>{ resolve() })
         }
 
         function signUp(cred){
-          server.signUp().then(resolve)
+          one.signUp().then(resolve)
         }
 
         //not to do notify user update
-        let loginPrompt = server.prompt({h1:'Login'},{ username:null,password:{type:"password"} },{ login: login, 'sign up':signUp, 'forgot password':forgotPassword })
+        let loginPrompt = one.prompt({h1:'Login'},{ username:null,password:{type:"password"} },{ login: setupLogin, 'sign up':signUp, 'forgot password':forgotPassword })
 
       })
+    }enableLogin(){
+    	localStorage.setItem('loginByDefault',true)
+      	location.reload();
     }say(message,duration){//to do suit to the chages made, make it echo
       //to do animate and background, message should work as message it should disappeaer after a moment
 
@@ -1226,13 +1250,13 @@ global.server = new class{
 
       //load paypal
 
-      let notifyUserPaypalLoad = server.say('Loading Payment GateWay...',60)
+      let notifyUserPaypalLoad = one.say('Loading Payment GateWay...',60)
 
 
       //important: https://developer.paypal.com/docs/api/orders/v2/
       
       function engage(){
-        server.checkBalance().then(balance=>{//to do 
+        one.checkBalance().then(balance=>{//to do 
           showPaypalPaymentGateway(balance)
         })
       }
@@ -1242,7 +1266,7 @@ global.server = new class{
 
 
       if (window.paypal) return engage()
-      if(!window.paypal) server.loadScript(null,'https://www.paypal.com/sdk/js?client-id='+server.Paypalclient_id+'&currency=USD').then(engage)
+      if(!window.paypal) one.loadScript(null,'https://www.paypal.com/sdk/js?client-id='+one.Paypalclient_id+'&currency=USD').then(engage)
       // fetch(,{mode: 'no-cors'}).then( res=>{ res.text().then(startSettingUp) } )
 
 
@@ -1283,7 +1307,7 @@ global.server = new class{
 
 
 
-        // let paypalPrompt =  server.prompt({h1:'Add money to your wallet with Paypal',h2:'',h3:'','#paypal-button-container':''},
+        // let paypalPrompt =  one.prompt({h1:'Add money to your wallet with Paypal',h2:'',h3:'','#paypal-button-container':''},
         //   {amount: {event:{keyUp:setamount}} } )
 
 
@@ -1302,7 +1326,7 @@ global.server = new class{
 
         //paypal api does not supports shadow dom
 
-        let paypalGateway = server.say(`
+        let paypalGateway = one.say(`
 
             <h1 id='notifyUserTitle'>
               Recharge Wallet. Balance: $${balance}
@@ -1345,11 +1369,11 @@ global.server = new class{
 
         // paypalGateway.dom.querySelector('#amount').innerHTML = 0
 
-        server.CSS('#_paypal_dollarAmount:before',{
+        one.CSS('#_paypal_dollarAmount:before',{
           content:'$'
         })//add to doc
 
-        server.CSS('#paypalbuttons',{
+        one.CSS('#paypalbuttons',{
             width: '62%',
             'margin-left': '19%',
             'margin-top': '1vw'
@@ -1404,9 +1428,9 @@ global.server = new class{
 
 
         function verifyPayment(transactionID){
-          let verifying = server.say('Verifying Payment')
+          let verifying = one.say('Verifying Payment')
 
-          server.post({ type:'confirmPaymentFromPaypal', cookie:localStorage.getItem('hostea') ,data:{ transactionId:transactionID } },data=>{
+          one.post({ type:'confirmPaymentFromPaypal', cookie:localStorage.getItem('hostea') ,data:{ transactionId:transactionID } },data=>{
           if (data.error)return verifying.update(data.error)
             if (callback) callback(true)
             // paypalGateway.kill() activate
@@ -1419,7 +1443,7 @@ global.server = new class{
     //documentation to mention we can use a function both through sync and async 
 
 
-    server.api( {$checkBalance:null} ).then(data=>{
+    one.query( {$checkBalance:null} ).then(data=>{
 
       if (callback) {
         callback(data)
@@ -1436,7 +1460,7 @@ global.server = new class{
   }paymentPrompt(arrayOfReceiver,amount,flavour,message){
 
     if (!amount) amount = 0
-    let loading = server.say('loading payment prompt')
+    let loading = one.say('loading payment prompt')
     //if flavour done not exists it means no fees
 
     async function getUsernameOfAll(){
@@ -1449,7 +1473,7 @@ global.server = new class{
           continue
         }
 
-        let object = await server.api({$findUser: index })
+        let object = await one.query({$findUser: index })
         console.log(object,index)
         newArrayOfReceiver.push('@'+object.username)
       }
@@ -1459,7 +1483,7 @@ global.server = new class{
 
     getUsernameOfAll().then(newArrayOfReceiver =>{
       arrayOfReceiver = newArrayOfReceiver
-      server.checkBalance(makePromptForPayment)
+      one.checkBalance(makePromptForPayment)
     })
     
 
@@ -1476,7 +1500,7 @@ global.server = new class{
         paymentList[index] = cred.amount
       }
 
-      server.pay(paymentList, 'u2u' , flavour)
+      one.pay(paymentList, 'u2u' , flavour)
     }
 
     //document the pay function takes object {receiver:amount}
@@ -1491,14 +1515,14 @@ global.server = new class{
 
     function makePromptForPayment(balance){
       loading.kill()
-      paymentPrompt = server.ask({h1:message,h3: 'Your balance: $'+balance}, { receiver:{ event:{keyup:updatePayButton}, type:'array',value:arrayOfReceiver } ,amount: {value: amount,required:true, event:{keyup:updatePayButton}} },
+      paymentPrompt = one.ask({h1:message,h3: 'Your balance: $'+balance}, { receiver:{ event:{keyup:updatePayButton}, type:'array',value:arrayOfReceiver } ,amount: {value: amount,required:true, event:{keyup:updatePayButton}} },
 
         {pay:makePayment,
         cancel:()=>{ paymentPrompt.kill() },
         recharge:()=>{
 
           paymentPrompt.kill()
-          server.chargeWallet()
+          one.chargeWallet()
 
         }
       })
@@ -1522,18 +1546,18 @@ global.server = new class{
 
       async function confirmPayment(fieldsData){
 
-        let confirmRequest = await server.post({ type:'confirm_payment', cookie:localStorage.getItem('hostea'), data:{ verificationCode: fieldsData.verification_code, orderIDs:orderIDs } })
+        let confirmRequest = await one.post({ type:'confirm_payment', cookie:localStorage.getItem('hostea'), data:{ verificationCode: fieldsData.verification_code, orderIDs:orderIDs } })
 
-        if (confirmRequest.error) return server.say(confirmRequest.error)
+        if (confirmRequest.error) return one.say(confirmRequest.error)
 
         console.log(confirmRequest)
 
-        if (confirmRequest.code !== 200) return server.say(confirmRequest.error)
+        if (confirmRequest.code !== 200) return one.say(confirmRequest.error)
 
         verificationPrompt.kill()
         callback(confirmRequest.orderID)
 
-        server.say('payment done')
+        one.say('payment done')
 
       }
 
@@ -1546,11 +1570,11 @@ global.server = new class{
 
       async function initializePayment(){
 
-        return await server.post({ type:'initialize_payment', cookie:localStorage.getItem('hostea'), data:{ flavour:flavour, type:type, paymentList:paymentList ,app:server.configuration.name } })
+        return await one.post({ type:'initialize_payment', cookie:localStorage.getItem('hostea'), data:{ flavour:flavour, type:type, paymentList:paymentList ,app:one.configuration.name } })
         //to do what about order id       
       }
 
-      let notify = server.say('Initializing transaction and making sure you have enough balance')
+      let notify = one.say('Initializing transaction and making sure you have enough balance')
 
       initializePayment().then(confiredOrNot=>{
 
@@ -1572,9 +1596,10 @@ global.server = new class{
 
       function promptForMakingTransaction(totalAmount){
 
-        server.checkBalance().then(balance=>{
+      	//wrong balance should be checked on initialization
+        one.checkBalance().then(balance=>{
           //if it is of the same type it will be hard to read
-          verificationPrompt = server.prompt(
+          verificationPrompt = one.prompt(
             { h1:'A verification Code has been Sent', h3:'Amount: $'+totalAmount+' | Balance: $'+balance},
             {verification_code: {placeholder:'verification code', onEnter:confirmPayment} },
             { 'Confirm Payment': confirmPayment, Cancel:cancel }
@@ -1590,19 +1615,19 @@ global.server = new class{
     }sendVerificationEmail(email,msg){
 
       return new Promise(resolve=>{
-        server.post({ type:'sendVerificationEmail',context:context,email:email },resolve)
+        one.post({ type:'sendVerificationEmail',context:context,email:email },resolve)
       })
     }closePrompt(type){
-      server.removeDom( document.querySelector('prompt-ui[data-type:"'+type+'"]') )
+      one.removeDom( document.querySelector('prompt-ui[data-type:"'+type+'"]') )
     }removeDom(dom){
 
       if (!dom.parentNode) return
       dom.parentNode.removeChild(dom)
     }CSS(selector, css) {
 
-      if (!server.stylesheet) server.stylesheet = document.head.appendChild( document.createElement("style") ).sheet
+      if (!one.stylesheet) one.stylesheet = document.head.appendChild( document.createElement("style") ).sheet
       
-      var sheet = server.stylesheet
+      var sheet = one.stylesheet
 
       var propText = typeof css === "string" ? css : Object.keys(css).map(function (p) {
 
@@ -1881,7 +1906,7 @@ global.server = new class{
 
 
 
-          key === 'image'? newTag.style['background-image'] = `url(${server.link( titles[key]) })` :  newTag.innerHTML = titles[key]
+          key === 'image'? newTag.style['background-image'] = `url(${one.link( titles[key]) })` :  newTag.innerHTML = titles[key]
           promptUiShadowRoot.querySelector('#head').appendChild(newTag)
 
         }
@@ -2032,7 +2057,7 @@ global.server = new class{
           function intermediate(){
             let newFn = buttons[key]
             let fieldValues = GetAllFieldValues()
-            if ( requiredOmmited(fieldValues) === false && key === primaryButon) return server.say('required field is missing') //a required value was ommited and a primary button was clicked
+            if ( requiredOmmited(fieldValues) === false && key === primaryButon) return one.say('required field is missing') //a required value was ommited and a primary button was clicked
             newFn(fieldValues)
           }
 
@@ -2089,7 +2114,7 @@ global.server = new class{
                   }else if ( index.getAttribute('contenteditable') ){
 
                     let arrayValues  = getInterest(index.innerHTML)
-                    if (arrayValues.length>5) return server.say(' five tags are enough, right? ')
+                    if (arrayValues.length>5) return one.say(' five tags are enough, right? ')
                     Obj[ index.getAttribute('data-name') ] = arrayValues
                     continue
 
@@ -2108,7 +2133,7 @@ global.server = new class{
           return shadowDom.querySelectorAll('#buttons button')[number-1]
         }
 
-        return {kill:()=>{ server.removeDom(newPromptTag) }, dom:shadowDom, button:button}
+        return {kill:()=>{ one.removeDom(newPromptTag) }, dom:shadowDom, button:button}
 
     }scrap(url,element){
       if(location.host === 'localhost') return
@@ -2130,7 +2155,7 @@ global.server = new class{
       }
 
       
-      server.post({type:'scrap',data:{ head:document.querySelector('head').innerHTML, heading:heading, text:text, url:url,html:element.innerHTML, app:server.configuration.name }},data=>{
+      one.post({type:'scrap',data:{ head:document.querySelector('head').innerHTML, heading:heading, text:text, url:url,html:element.innerHTML, app:one.configuration.name }},data=>{
         console.log(data,'scrap')
       })
     }utilityFunctions(){
@@ -2144,13 +2169,13 @@ global.server = new class{
             console.log('uploading...')
             let form = new FormData()
             form.append('file',file )
-            form.append('app', server.configuration.name)
+            form.append('app', one.configuration.name)
             form.append('filename',fileName)
 
             if( localStorage.getItem('hostea') ) form.append('cookie',localStorage.getItem('hostea') )
             
 
-            fetch(server.info.serverUrl+'/upload', {
+            fetch(one.info.serverUrl+'/upload', {
               method: 'POST',
               body: form
             }).then( response => response.json().then(postData=>{
@@ -2171,7 +2196,7 @@ global.server = new class{
 
     }link(id){//from cdn document
       if (!id) return 'https://www.yakindowebdesigns.com/images/BS-Broken-Link-Icon.jpg'
-      return 'http://cdn.'+server.info.host+':'+server.info.port+'/'+id
+      return 'http://cdn.'+one.info.host+':'+one.info.port+'/'+id
     }upload(message,fileName,callback){
 
       
@@ -2181,8 +2206,8 @@ global.server = new class{
 
         if (!fileName) fileName = null
 
-        let uploading = server.say('uploading....')
-        server.utility.upload( event.target.files[0],fileName ).then((url)=>{
+        let uploading = one.say('uploading....')
+        one.utility.upload( event.target.files[0],fileName ).then((url)=>{
 
             if (url.error) return uploading.update(url.error)
             uploading.kill()
@@ -2192,7 +2217,7 @@ global.server = new class{
           });
       }
 
-      let uploadPrompt = server.prompt({h1:'Upload '+message},{ file: { event:{chage:onSelectFile}, attributes:{type:'file'}  }} )
+      let uploadPrompt = one.prompt({h1:'Upload '+message},{ file: { event:{chage:onSelectFile}, attributes:{type:'file'}  }} )
 
       //also async
       if(!callback) return new Promise(resolve=>{
@@ -2204,11 +2229,11 @@ global.server = new class{
 }
   
   let PAYPAL_SANDBOXED = 'TRUE'
-  server.Paypalclient_id = 'AQE_rig7P4zSK-XlRXctpAvqEV-3dFM_bcxVqBxvHd9wJISq0RIfcAqxdSYqlc4ekFR445I_bMjMG2Er'
+  one.Paypalclient_id = 'AQE_rig7P4zSK-XlRXctpAvqEV-3dFM_bcxVqBxvHd9wJISq0RIfcAqxdSYqlc4ekFR445I_bMjMG2Er'
 
   if( PAYPAL_SANDBOXED === 'TRUE' ){
     console.log('running paypal checkout in test env')
-    server.Paypalclient_id = 'ATmVk60R3iDM8x5gfm8n4d07wvemHhEyuoENv9YKqixM2Elt_kmNCL96MOFeH0_OP0A8UWFYj4YYnDzx'
+    one.Paypalclient_id = 'ATmVk60R3iDM8x5gfm8n4d07wvemHhEyuoENv9YKqixM2Elt_kmNCL96MOFeH0_OP0A8UWFYj4YYnDzx'
   }
       
 
@@ -2220,11 +2245,11 @@ global.server = new class{
 let ScTag = document.getElementsByClassName('hostea')[0]
   if (ScTag){
 
-    server.configuration.name = ScTag.getAttribute("app_name")
+    one.configuration.name = ScTag.getAttribute("app_name")
 
     // console.log()
     // function engageReceiving(){
-      server.start(null, {mode:ScTag.getAttribute("mode"), job:ScTag.getAttribute("job")} )
+      one.run(null, {mode:ScTag.getAttribute("mode"), job:ScTag.getAttribute("job")} )
     
 
 
@@ -2236,7 +2261,7 @@ let ScTag = document.getElementsByClassName('hostea')[0]
 
   
 
-//server.live( {on:'answers',where:{} } ,console.log )    
+//one.live( {on:'answers',where:{} } ,console.log )    
 
 // var addRule = (function (style) {
 //     var sheet = document.head.appendChild(style).sheet; //it is a self provoking function which takes the value of the bracket that has followed and returns a function so that new stylesheet is created only once
