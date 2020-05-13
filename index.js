@@ -352,15 +352,16 @@ function frameHtml(res,domain){
 
   let fullHTML=`<html> 
                 <head>
-                  <!-- Global site tag (gtag.js) - Google Analytics -->
-                  <script async src="https://www.googletagmanager.com/gtag/js?id=UA-90406803-2"></script>
-                  <script>
-                    window.dataLayer = window.dataLayer || [];
-                    function gtag(){dataLayer.push(arguments);}
-                    gtag('js', new Date());
+                
+                <!-- Global site tag (gtag.js) - Google Analytics -->
+                <script async src="https://www.googletagmanager.com/gtag/js?id=UA-166276820-1"></script>
+                <script>
+                  window.dataLayer = window.dataLayer || [];
+                  function gtag(){dataLayer.push(arguments);}
+                  gtag('js', new Date());
 
-                    gtag('config', 'UA-90406803-2');
-                  </script>
+                  gtag('config', 'UA-166276820-1');
+                </script>
 
                   <meta name="apple-mobile-web-app-capable" content="yes">
                   <meta name="mobile-web-app-capable" content="yes">
