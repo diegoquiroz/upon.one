@@ -217,17 +217,20 @@ app.post('/upload',upload,(req, res) =>{
       if (error){
 
         if(error.code = 11000) {
-          db.files.findOneAndUpdate({ filename:fileName, owner:user, created:true },{
+          db.files.findOneAndUpdate({ filename:fileName, owner:user},{
             size: req.file.size/(1000),
             data: req.file.buffer,
             filetype: req.file.mimetype,
             encoding: req.file.encoding
-          },{new: true, passRawResult : true},(errorUpdate,info,raw)=>{
+          },{new: true, passRawResult : true},(errorUpdate,info)=>{
+
+            if(errorUpdate) return res.send({error:errorUpdate})
+
+            if(!info) return res.send({error:'permission denied for update of: '+fileName})
+            if(info.owner !== user) return res.send({error:'permission denied for update of: '+fileName})
 
 
-            // console.log(raw)
-            if (!raw ) return res.send({error:'permission denied for update of: '+fileName})
-            if (errorUpdate) return res.send({error:errorUpdate})
+
             res.send({code:200,url:info.filename,updated:true})
             // console.log('update uploaded'+info.filename)
 
@@ -349,6 +352,16 @@ function frameHtml(res,domain){
 
   let fullHTML=`<html> 
                 <head>
+                  <!-- Global site tag (gtag.js) - Google Analytics -->
+                  <script async src="https://www.googletagmanager.com/gtag/js?id=UA-90406803-2"></script>
+                  <script>
+                    window.dataLayer = window.dataLayer || [];
+                    function gtag(){dataLayer.push(arguments);}
+                    gtag('js', new Date());
+
+                    gtag('config', 'UA-90406803-2');
+                  </script>
+
                   <meta name="apple-mobile-web-app-capable" content="yes">
                   <meta name="mobile-web-app-capable" content="yes">
                   <meta name='viewport' content='width=device-width, initial-scale=1.0, user-scalable=0' >
@@ -358,6 +371,9 @@ function frameHtml(res,domain){
         <body></body>
           <script class="hostea"  app_name="${domain}" mode="${runtm.type}" job="receive" src="${ lcUrl('loader.js') }">
           </script>
+
+
+
  
 
          </html>`
