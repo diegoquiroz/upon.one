@@ -4,6 +4,16 @@ var {parse,helperFunctions} = require('./lib/objLogic.js')
 const fetch = require("node-fetch");
 var pos = require('node-pos').partsOfSpeech;
 var { getUserData,checkBalance,random,renameOutput,setNewVerificationCode,sendEmail,sendVerificationEmail,addUniquePrefix } = require('./functions.js')
+
+var Twit = require('twit');
+
+var twitter = new Twit({
+  consumer_key:         process.env.consumer_key,
+  consumer_secret:      process.env.consumer_secret,
+  access_token:         process.env.access_token,
+  access_token_secret:  process.env.access_token_secret
+});
+
 // let checkBalance = functions.checkBalance
 // let random = functions.random
 // let renameOutput = functions.renameOutput
@@ -102,19 +112,39 @@ function handleParse(prop,range){
                 this.erase = this.erase.bind(this)
                 this.log = this.log.bind(this)
                 this.log = this.log.bind(this)
-
+                this.exceptionForLogin = this.exceptionForLogin.bind(this)
+                
                 if(prop.log) this.logs = prop.log
               }
 
 
               exceptionForLogin(functionName,exceptionList2){
-                let exceptionList1 = ['pos','googleSearch','youtubeSearch']
-                if (!this.user && !exceptionList1.includes(functionName) && !exceptionList2.includes(functionName) ){
+                let exceptionList1 = ['twitterSearch','pos','googleSearch','youtubeSearch']
+                if(!this.user && !exceptionList1.includes(functionName) && !exceptionList2.includes(functionName) ){
                   console.log(exceptionList1.includes(functionName)+' '+functionName)
                   return {allowed:false,error:'Login required'}
                 }
             
                 return {allowed:true}
+              }twitterSearch(obj){
+
+                return new Promise(resolve=>{
+
+                  console.log(obj.string)
+
+                  let query = {
+                    q: obj.string, 
+                    count: 20,
+                    result_type:obj.type
+                  }
+
+                  function resulted(err,data){
+                      resolve({error:err,data:data})
+                  }
+
+                  twitter.get('search/tweets',query, resulted);
+                })
+
               }log(string){
                 // console.log(string,'loggin')
                 if (this.logs) this.logs.push(string)
@@ -129,11 +159,12 @@ function handleParse(prop,range){
                 return new Promise(resolve=>{
 
                   //replaces everything except numbers and words
-//                 \w stands for "word character", usually [A-Za-z0-9_]. Notice the inclusion of the underscore and digits.
+                  //                 \w stands for "word character", usually [A-Za-z0-9_]. Notice the inclusion of the underscore and digits.
 
-//                 \s stands for "whitespace character". It includes [ \t\r\n].
-//even full stop and commas
-//^ means except
+                  //                 \s stands for "whitespace character". It includes [ \t\r\n].
+                  //even full stop and commas
+                  //^ means except
+
                   pos(string.replace(/[^\w\s]/g,''), function (data) {
                     resolve(data);
                   })

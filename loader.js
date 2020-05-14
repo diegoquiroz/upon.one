@@ -57,29 +57,6 @@ let loader = {
         document.head.appendChild(serve)
 
 
-        window.addEventListener( "message",
-          function (e) {
-
-                let mama = document.getElementsByClassName('hostea')[0]
-
-                //to do: security issues with if(e.origin)
-
-                if(mama) mama = mama.getAttribute('app_name')
-                console.log('post message received',e.data, mama,e.origin )
-                // if(e.origin) if(e.origin !== 'https://upon.one' && e.origin !== 'http://upon.one' && e.origin !== null  && e.origin.indexOf('localhost') === -1 && e.origin !== 'http://www.upon.one' && e.origin !== 'https://www.upon.one'){ return; } 
-                // alert(e.data);
-                console.log('post message approved',e.data)
-
-                if(e.data.indexOf('setImmediate') !== -1) return console.log('a set Immediate')
-
-                let data = JSON.parse(e.data)
-
-                if(localStorage.getItem('hostea')) if(localStorage.getItem('hostea') === data.cookie) return
-
-                localStorage.setItem('hostea',data.cookie)
-                localStorage.setItem('user',data.user)
-                window.location.reload()
-          });
 
 
 
