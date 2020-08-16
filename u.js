@@ -1563,6 +1563,9 @@ let U = new class{
   }login(loginFor){
 
     return new Promise(finished=>{
+
+      if(U.configuration.job !=='host' && U.configuration.name !== 'auth') return window.location.href = U.getSubAppUrl('auth')+`/?appName=${U.configuration.name}`;
+
       function resolve(data){
         prompt.kill()
         finished(data)
@@ -1588,7 +1591,6 @@ let U = new class{
   }loginWithGoogle(devLogin){
 
     return new Promise(loginCompleted=>{
-      if(U.configuration.job !=='host' && U.configuration.name !== 'auth') return window.location.href = U.getSubAppUrl('auth')+`/?appName=${U.configuration.name}&loginType=upon`;
 
       let pleaseWait = U.say('please Wait')
 
@@ -1622,8 +1624,9 @@ let U = new class{
 
               console.log(googleUser.getAuthResponse())
 
+              let pleasewait2 = U.say('please Wait')
               getAucFromGoogleToken( googleUser.getAuthResponse()).then(data=>{
-
+                pleasewait2.kill()
                 //logout to remove google's cookie so that dev login and user login don't intefere
                 //google login saves cookie so that payload can be accessed at a later time
                 //we don't need that
@@ -1695,8 +1698,7 @@ let U = new class{
       //complete: all loaded
       //loading: meaning loading
    
-      if(U.configuration.job !=='host' && U.configuration.name !== 'auth') return window.location.href = U.getSubAppUrl('auth')+`/?appName=${U.configuration.name}&loginType=google`;
-
+ 
 
       if (U.loginResolve) return U.loginResolve //if login is called twice all are given the same resolve
       U.loginResolve = resolve
