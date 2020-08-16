@@ -1695,7 +1695,7 @@ let U = new class{
       //complete: all loaded
       //loading: meaning loading
    
-      if(U.configuration.job !=='host' && U.configuration.name !== 'auth') return window.location.href = U.getSubAppUrl('auth')+`/?appName=${U.configuration.name}&loginType=upon`;
+      if(U.configuration.job !=='host' && U.configuration.name !== 'auth') return window.location.href = U.getSubAppUrl('auth')+`/?appName=${U.configuration.name}&loginType=google`;
 
 
       if (U.loginResolve) return U.loginResolve //if login is called twice all are given the same resolve
