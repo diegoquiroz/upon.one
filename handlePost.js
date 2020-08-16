@@ -1,32 +1,55 @@
-if(!process.env.PORT) require('dotenv').config();
-
 const db = require('./db.js')
 const cronWorker = require('./cronWorker.js')
 
-const {getUserData, hash,checkBalance,random,setNewVerificationCode,sendEmail,sendVerificationEmail} = require('./functions.js')
+const {jwtKey, getUserData, hash,setNewVerificationCode,sendVerificationEmail, random} = require('./functions.js')
 
 const handleParse = require('./handleParse.js')
 
-function sendAppSource(fileName,callback){//find one
+let jwt = require('jsonwebtoken');
 
-  db.apps.findOne( {name:fileName.toLowerCase()} , function(err_o, info_o){
-    // console.log(fileName,info_o)
-    // console.log(fileName, info_o)
-    if(!info_o) return callback( { error:'404 '+fileName+' not found' } )
-    if (err_o) return console.log(err_o)
-    
-    
-    if(info_o) callback( { data: {source:info_o.source,loginByDefault:info_o.loginByDefault} } ) 
-              
-    })            
-}
+let CLIENT_ID = '140572074409-ijht2s8v0ldnotak190gbqi4gh8ci72e.apps.googleusercontent.com'
+const {OAuth2Client} = require('google-auth-library');
+const client = new OAuth2Client(CLIENT_ID);
 
-function handlePost(req, res, userData,userMeta){
+
+
+
+function handlePost(req, res, processedCookieData,appName,giveConnection){
+
+  let userData = processedCookieData.user
+  let developerData = processedCookieData.developer
 
   var qBody = ''
   var reqData = req.body
 
-  // console.log(reqData.type)
+  function sendCookie(res,userDataForToken){
+  
+    userDataForToken.appName = appName
+
+    const token = jwt.sign(userDataForToken, jwtKey, {
+      algorithm: "HS256",
+      expiresIn: '360 days',
+    })
+
+
+
+    if(!qBody.devLogin) res.cookie('user-cookie',token,{ expires: new Date(Date.now() + 9999999*99999) });
+
+  
+
+
+  // httpOnly: cookies won't be accessible on the client
+  // When working on localhost, the cookie domain must be omitted entirely. Just setting it to "" or NULL or FALSE instead of "localhost" is not enough.
+  //otherwise you can use a hack and host all of the application to something.localhost so that subdomains exist on *.something.localhost this ise because standards require two dots in universal subdomain cookie declaration
+  //another work around: https://stackoverflow.com/questions/38669040/share-cookies-to-subdomain-on-localhost
+
+  res.send( {code:200,msg:token} )
+
+}
+
+
+
+
 
 
   if(reqData.data){
@@ -34,7 +57,6 @@ function handlePost(req, res, userData,userMeta){
     try{
       qBody = JSON.parse(reqData.data) //remember data is passed 
     }catch(e){
-
       if(reqData.data.indexOf('{') !== -1 || reqData.data.indexOf('}') !== -1) return res.send(e)//json encoding error
       qBody = reqData.data
     }
@@ -83,7 +105,7 @@ function handlePost(req, res, userData,userMeta){
       break
     case'db':
 
-      let meta = {log:[],timeTaken:0}
+      let meta = {timeTaken:0}
 
       function sendApiData(data){
         res.send({data:data,meta:meta})
@@ -93,367 +115,51 @@ function handlePost(req, res, userData,userMeta){
       // if (!userData )  return sendApiData({error:'Login required'})
       //do it only for red, write and update
 
+      if(req.body.adminMode){ //check owner
 
+        db.apps.findOne({name:appName} , function(err, info){
 
-      var appName = req.body.name
+          if(!info) return sendApiData( {error: `app not found` } )
+          if(info.owner == developerData.id){
 
-      // console.log(qBody,appName)
+            proceedQuery('action')
 
-      db.law.findOne({app:appName},function(err, info_main){
-
-        if (err)  return res.send({error:err})
-        if (!info_main) return sendApiData({error: appName+' not found: ' , code:1211 })
-        
-        var database = JSON.parse(info_main.DBs)
-        var preCode = null
-
-        if ( info_main.preCode ) preCode = JSON.parse(info_main.preCode)
-
-
-        //also in failure send sendApiData
-        let prop = {app:appName, parse:qBody, preCode:preCode ,success:sendApiData, database:database, user:userData,log:meta.log}
-        handleParse(prop)
-
-
-      })
-
-
-      break
-    case'confirmPaymentFromPaypal'://add paypal transaction to ledger
-
-      if(!userData) return res.send({error:'login required invalid'})
-
-      var paypal_orderID = qBody.transactionId//TP
-
-      process.env.PAYPAL_SANDBOXED === 'TRUE'? qBody.sandboxed = true : qBody.sandboxed = false
-
-      if (!paypal_orderID) return res.send({error:'order id invalid'})
-      // 1. Set up your server to make calls to PayPal
-
-      // 1a. Import the SDK package
-      const checkoutNodeJssdk = require('@paypal/checkout-server-sdk');
-      const payPalClient = require('./paypalEnvironment.js');
-
-
-
-      handlePaypal()
-      async function handlePaypal() {
-
-        let request = new checkoutNodeJssdk.orders.OrdersGetRequest(paypal_orderID);
-
-        let order;
-
-        try {
-          order = await payPalClient.client().execute(request);
-        } catch (err) {
-
-
-          console.error(err.HttpError.error_description,err);
-          return res.send( {error: err.HttpError.error_description ,code: 500} );
-        }
-
-        // console.log(order)
-
-        let amount = order.result.purchase_units[0].amount.value
-    
-        
-
-        //it can be done more than once
-        var pay_save = new db.transactions({
-                receiver:userData.id,//id // to do everywhere id
-                amount:amount,
-                orderID:paypal_orderID,
-                sandboxed:qBody.sandboxed,
-                orderID:random(),
-                type: 'paypal',
-                status: 'paid'
-              })
-
-        pay_save.save((error,transaction)=>{
-          if (error){
-
-            function crashServer(){//to do stop process
-              throw Error(error)
-            }//so than no other paypal payment is left unnoted
-
-            error.code === 11000? res.send({error: 'order already noted' }) : crashServer()
-            return
-          }  
-          res.send({code:200,transactionId: paypal_orderID,amount:amount})
-          //return payment id
-         })
-        // db.transaction.findOneAndUpdate({ _id:transactionId },{status:'paid',amount:amount},{verified:true},{new: true,runValidators: true }).then(msg=>{ console.log('writing trnsaction') })
-        
-        
-      }
-      
-
-      //also verify amount
-      
-      break
-    case'confirm_payment':
-
-      // to do charge wallet will show current balance 
-      
-      // console.log(qBody.verificationCode,'verification code',userMeta)
-
-      //why two step so that we email the amount declared so that user can't be ffished and also make amount immutable
-      if (qBody.verificationCode !== userMeta.verificationCode) return res.send({error:'wrong verification code'})
-      if (!qBody.orderIDs) return res.send( {error: 'orderID is required' } )
-
-
-        // console.log(qBody.orderIDs,'orderids')
-
-
-      function confirmPayment(orderID){
-
-        return new Promise(resolvePay=>{
-
-          db.transactions.findOne({ orderID:orderID } , function(err, info){
-
-            if(!info) return res.send( {error: 'invalid orderID' } )
-            if(!info.type === 'paypal') return res.send( {error: ' can not confirm this payment ' } )
-            if(!info.status === 'paid') return res.send( {error: 'already paid' } )
-            if(userData.id !== info.sender) return res.send( {error: 'payment author mismatch' } )
-
-            let status = 'paid'
-
-            db.transactions.findOneAndUpdate({ orderID:orderID },{status:status},{new: true,runValidators: true },(err,data)=>{
-
-              if (err) return res.send({code:400, error:err.message ,orderID:qBody.orderID})
-
-              sendNotification({message: 'amount of $'+data.amount+ ' received' ,to:data.receiver, meta:data.amount}
-                                ,data.sender
-                                ,data.app
-                                ,true)
-
-              if(info.type === 'u2u') if(info.fees) return payfees( info.app, info.fees, info.sandboxed).then(()=>{
-                resolvePay(orderID)
-              })
-
-              
-              resolvePay(orderID)
-
-
-            })
-          })
-        })
-      }
-
-      async function payAllOrders(){
-        for(let index of qBody.orderIDs){
-          // console.log('paying',index)
-          await confirmPayment(index)
-          
-        }
-
-        setNewVerificationCode(userData.email)//change verification code once it is used
-
-        res.send({code:200})
-      }
-      payAllOrders()
-
-
-      function payfees(app,amount,testMode){
-
-        return new Promise(resolve=>{
-
-            var pay_save = new db.transactions({
-                sender:userData.id,
-                amount:amount,
-                type: 'u2a',
-                isFees:true,
-                orderID:random(),
-                app:app,
-                sandboxed:testMode,
-                status: 'paid'
-              })
-
-        pay_save.save((error,transaction)=>{
-          if (error) throw Error(error)
-          resolve(transaction)
-         })
-      })
-      }
-
-      
-
-      break
-    case'initialize_payment':
-
-      //to do make initialize payment and confirm payment both take objects
-
-
-      if(!qBody.sandboxed) qBody.sandboxed = false
-      if (qBody.sandboxed !== true) qBody.sandboxed = false
-
-      if( process.env.PAYPAL_SANDBOXED === 'TRUE' ) qBody.sandboxed = true
-
-      if (!qBody.app) return res.send( {error: 'app not specified' } )
-      if (!qBody.type) return res.send( {error: 'type of payment not specified' } )
-      if (!qBody.paymentList) return res.send( {error: 'paymentList of payment not specified' } )
-      if (qBody.type !== 'u2u' && qBody.type !== 'u2a' ) return res.send( {error: 'invalid type value' } )
-
-
-      let fees = 0
-      let totalAmount = null
-
-
-      findFees().then(data=>{
-
-        if(data.error) return res.send({error:data.error})
-
-        fees = data
-
-        findTotalAmount().then(total=>{
-          totalAmount = total
-          if (qBody.sandboxed === true) return iterateOnPayments() //if it is just testing
-
-          checkBalance(userData.id).then( balance=>{
-            //document the code 999
-            if ( total > balance ) return res.send( {code:999 ,error: `your balance: ${balance} is not enough to satisfy the transfer of ${total} with fees ${fees}` } )
-            iterateOnPayments()
-          })
-
-        }).catch(errorInCalculation=>{
-          res.send({error:errorInCalculation.message})
-        })
-
-      }).catch(error=>{
-        console.warn(error)
-        res.send({error:error.message})
-      })
-
-
-      async function iterateOnPayments(){
-
-        sendVerificationEmail( userData.email,'transaction of $'+totalAmount+' including fees of $'+fees)
-
-        let paymentData = []
-
-        for(let key in qBody.paymentList ){
-
-            //document receiver's username can also be given
-            let receiverData = await extractUserData(key)
-            if (!receiverData) return res.send( { error: `receiver not found: ${key}` } )
-
-              let newPaymentData = await initializePayment(receiverData.id, qBody.paymentList[key] )
-            // console.log(newPaymentData)
-            paymentData.push( newPaymentData.orderID )
-        }
-
-        return res.send( {msg:'success! payment initialized',orderIDs:paymentData,code:200,totalAmount:totalAmount } )
-      }
-
-      function findTotalAmount(){
-
-        return new Promise(resolve=>{
-
-          let sumAmount = 0
-
-          for(let key in qBody.paymentList){
-
-            try{
-              // console.log(qBody.paymentList[key],'number')
-              sumAmount += totalWithFees( qBody.paymentList[key]  )
-            }catch(error){
-
-              // console.log(error)
-              throw Error(error.message)
-            }
-            
-
+          }else{
+            return sendApiData( {error: `You don't have owner permission` } )
           }
-
-          resolve(sumAmount)
-        })
-      }
-
-      function totalWithFees(amount){
-        amount = Number(amount)
-        // console
-
-        //document if the amount is a string then that percentage is calculated if it is a number amount is just added
-
-        let totalAmount = typeof fees === 'string'? amount + (  (Number( fees.replace(/%/gi,''))/100) * amount ) : amount + Number(fees) 
-        if( isNaN( totalAmount  )  ) throw Error('invalid fees '+fees+' or amount: '+amount)
-
-        return totalAmount
-      }
-
-      function initializePayment(receiver,amount){
-        return new Promise(resolve=>{
-
-          let status = 'initiated'
-              let calculatedFees = totalWithFees(amount)
-              //u2u: streaming site donation
-              //u2a:gambling game
-              //a2u:gambling game
-              let orderID = random()
-
-              var pay_save = new db.transactions({
-                  sender:userData.id, //verify by cookie
-                  receiver:receiver,//id
-                  amount:amount,
-                  type: qBody.type,
-                  orderID:random(),
-                  fees:calculatedFees,
-                  app:qBody.app,
-                  sandboxed:qBody.sandboxed,
-                  status: status
-                })
-
-          pay_save.save( (error,transaction)=>{
-            if (error) throw Error(error)
-            resolve(transaction)
-            //return payment id
-           } )
-
-
-
+          
 
         })
+      }else{
+        proceedQuery('api')
       }
 
-      function findFees(){
-        return new Promise(resolve=>{
+  
 
-          db.apps.findOne({ name:qBody.app }).then((err, rulesFound)=>{
-            if (!rulesFound) throw Error('app not found')
-
-
-            if(qBody.flavour){
-
-              // console.log(rulesFound)
-              if(!rulesFound.fees) throw Error('fees is not defined')
-              let feesObject = JSON.parse( rulesFound.fees )
-
-              // console.log(feesObject,qBody.flavour,feesObject[qBody.flavour])
-
-              if( !feesObject[qBody.flavour] ) throw Error( 'invalid flavour: '+qBody.flavour )
-              
-              resolve( feesObject[qBody.flavour] )
-
-            }else{
-              resolve(0)
-            }
-
-          }).catch(error=>{
-            resolve({ error:error.message })
-          })
+      function proceedQuery(via){
+          //also in failure send sendApiData
+          let prop = {giveConnection:giveConnection, appName:appName, via:via ,parse:qBody, failure:sendApiData, developer:developerData, user:userData}
+          handleParse(prop).then(sendApiData)
+      }
 
 
+      break
+    case 'saveDbLink':
+
+      db.apps.findOne({name:appName},function(err, info_main){
+        if(!info_main) return res.send({error:'app not found: '+prop.appName})
+        if(!developerData) return res.send({error:'not logged as developer'})
+
+        if(developerData.id != info_main.owner) return res.send({error:'permision denied'})
+        
+        db.law.findOneAndUpdate({app:appName},{dbLink:qBody.dbLink},function(err, info_main){
+          res.send({code:200})
         })
-      }
 
+      })
 
-
-
-
-
-      
-      break//see if email is verified
-    case 'sendCodeEmail':
+      break
+    case 'sendEmail':
 
       if (!userData) return res.send({error:'not logged in'})
 
@@ -475,33 +181,26 @@ function handlePost(req, res, userData,userMeta){
           sendVerificationEmail(data.email,'reseting your password, your username is '+data.username,callback)
         })
       break
-    case 'readLogs':
-      if(!qBody.app) return res.send( {error:'app name required'} )
-
-      db.apps.findOne({name:qBody.app},function(err,app){
-
-        if(userData.id !== app.owner) return res.send( {error:'you are not the owner'} )
-
-          res.send({log:app.logs})
-
-      })
-      break
     case 'runCRON':
-      if(!qBody.app) return res.send( {error:'app name required'} )
+  
       if(!qBody.type) return res.send( {error:'type  required'} )
 
         //**
 
-      db.apps.findOne({name:qBody.app},function(err,app){
-        // console.log(qBody.app)
-        if(userData.id !== app.owner) return res.send( {error:'you are not the owner'} )
+      db.apps.findOne({name:appName},function(err,app){
 
-        cronWorker(qBody.type,qBody.app,(data)=>{
+        if(developerData.id !== app.owner) return res.send( {error:'you are not the owner'} )
+
+        cronWorker(qBody.type,appName,(data)=>{
           res.send({log:data})
         })
 
       })
 
+      break
+    case 'logout':
+      res.cookie('user-cookie','', { expires: 0 });
+      res.send({code:200})
       break
     case'verify_email_access':
       //to do expire the verification email, (not now)
@@ -510,10 +209,11 @@ function handlePost(req, res, userData,userMeta){
       
       //to do username cant have athedate or any other symbol
 
-      // console.log(qBody.job,qBody.verificationCode)
 
-      let verificationCode = null
+
+
       let user = null
+      let id = null
       let cookie = null
       let email = null
         // if( return res.send({error:'wrong OTP'})
@@ -522,9 +222,13 @@ function handlePost(req, res, userData,userMeta){
 
 
         
-        function proceedVerify_email_access(){
+        function proceedVerify_email_access(verificationCode){
 
-          // console.log('qBody.verificationCode, verificationCode')
+
+          //for email verification you need to be logged in
+
+
+
 
           qBody.verificationCode = qBody.verificationCode.trim()
 
@@ -534,7 +238,7 @@ function handlePost(req, res, userData,userMeta){
 
               case 'forgot_password':
                 if (!qBody.newPassword) return res.send({msg:'newPassword field required'})
-                db.users.findOneAndUpdate({ username:user },{password:hash(qBody.newPassword),verified:true },{new: true,runValidators: true }).then(msg=>{console.log('email verified'+qBody.username)})
+                db.users.findOneAndUpdate({ username:user },{password:hash(qBody.newPassword),verified:true },{new: true,runValidators: true }).then(msg=>{console.log('email verified '+qBody.username)})
                 break
               case 'verify_email':
                 db.users.findOneAndUpdate({ username:user },{verified:true},{new: true,runValidators: true }).then(msg=>{console.log('email verified '+qBody.username)})
@@ -544,31 +248,39 @@ function handlePost(req, res, userData,userMeta){
 
             //shound we make verification mandatory for cookies to be assigned
             
-            res.send( {code:200,msg:cookie} ) //in case of otp breach session can be breached but it doesn't matters as it can do any thing due to localstorage it is already in secure and cookies can be stolen
+            sendCookie(res,{username:user, id:id,email:email}) //in case of otp breach session can be breached but it doesn't matters as it can do any thing due to localstorage it is already in secure and cookies can be stolen
             let code = setNewVerificationCode(email)//change verification code one it is used
             // type === 'otp'? res.send({msg:'account verified'}) : 
-          }
+        }
+
+        var personData = qBody.devLogin? developerData : userData
         
-        if (userData) {
-          user = userData.username
-          verificationCode = userMeta.verificationCode
-          email = userData.email
-          proceedVerify_email_access()
-        }else if(qBody.username){
+        if (qBody.job.toLowerCase() == 'verify_email'){//for verifying email
+          user = personData.username
+          id = personData.id
+          email = personData.email
+
+
+          getUserData(user,true).then(data=>{
+            proceedVerify_email_access(data.verificationCode)
+          })
+
+          
+        }else if(qBody.username){//for forgot password
           
 
           getUserData(qBody.username,true).then(data=>{
 
             if (!data) return res.send({error:'username not found'})
 
+            id = data.id
             cookie = data.cookie
             user = data.username
             email = data.email
-            verificationCode = data.verificationCode
-
-            // console.log(qBody.verificationCode, verificationCode)
-            proceedVerify_email_access()
+            proceedVerify_email_access(data.verificationCode)
+          
           })
+            
         }else{
           return res.send({error:'username not given'})
         }
@@ -576,16 +288,90 @@ function handlePost(req, res, userData,userMeta){
 
       break
     case'resendVerificationCode':
-      
+        
+      var personData = qBody.devLogin? developerData : userData
       //get user data from cookie
-      sendVerificationEmail( userData.email, qBody.context, (k)=>{  res.send(k) } )
+      sendVerificationEmail( personData.email, qBody.context, (k)=>{  res.send(k) } )
 
+      break
+    case'getAucFromGoogleToken':
+      
+      let id_token = qBody.id_token
+      let genderAndBirthday = qBody.genderAndBirthday
+
+      let gender = 'male'
+      let birthday = null
+
+      if(genderAndBirthday.genders) if(genderAndBirthday.genders[0].value) gender = genderAndBirthday.genders[0].value
+      if(genderAndBirthday.birthdays){
+        let lastIndex =genderAndBirthday.birthdays.length -1
+        if(lastIndex >= 0){
+          birthday = genderAndBirthday.birthdays[lastIndex].date
+        }
+      }
+
+      console.log(birthday, gender)
+
+
+      async function verify() {
+        const ticket = await client.verifyIdToken({
+            idToken: id_token,
+            audience: CLIENT_ID,  // Specify the CLIENT_ID of the app that accesses the backend
+            // Or, if multiple clients access the backend:
+            //[CLIENT_ID_1, CLIENT_ID_2, CLIENT_ID_3]
+        });
+        const payload = ticket.getPayload();
+        const userid = payload['sub'];
+
+        createGoogleAccountOrLogin(userid,payload)
+
+        
+      }
+      
+      verify().catch(console.error);
+
+
+      function createGoogleAccountOrLogin(googleUserId,payload){
+
+
+        db.users.findOne({email: payload.email} , function(err, info){
+
+          if(info){
+            sendCookie(res,{username:info.username,id:info.id,email:info.email})
+          }else{
+            
+
+            var user_save = new db.users({
+              fullName:payload.name,
+              username:random(),
+              password:null,
+              email:payload.email,
+              birthday:birthday,
+              gender:gender,
+              googleId:googleUserId,
+              googleAuthToken:token,
+              profile:payload.picture,
+              verified:true,
+              verificationCode:null
+            })
+  
+          user_save.save(error=>{
+            if(error,info){
+              if(error) return res.send({error:error.message})
+              sendCookie(res,{username:info.username,id:info.id,email:info.email})
+            }
+          })
+
+          }
+
+        })
+      }
       break
     case'loginOrSignup':
 
 
       let newAccount = qBody.newAccount || false
-      let salt =  hash(null)
+
       qBody.password = hash(qBody.password)
 
       if(!qBody.username) return res.send(  {code:400,msg:'fill username'} )
@@ -612,14 +398,40 @@ function handlePost(req, res, userData,userMeta){
 
       function createAccount(){
 
+
+        if(!qBody.birthday) return res.send(  {code:400,error:` Don't worry we won't ask for any treat on your birthday`} )
+        
+        let gender
+
+        if(qBody.male){
+          gender = 'male'
+        }else if(qBody.female){
+          gender = 'female'
+        }else{
+          gender = 'other'
+        }
+
+        
+        let birthday = null
+
+        if(qBody.birthday){
+          let birthdaySplit = qBody.birthday.split('-')
+          birthday = {
+            year:birthdaySplit[0],
+            month:birthdaySplit[1],
+            day:birthdaySplit[2]
+          }
+        }
+        
         var user_save = new db.users({
             username:qBody.username,
             password:qBody.password,
             email:qBody.email,
+            birthday:birthday,
+            gender:gender,
             interest: qBody.tags,
             verified:false,
-            verificationCode:null,
-            cookie: salt
+            verificationCode:null
           })
 
         user_save.save(error=>{
@@ -636,7 +448,6 @@ function handlePost(req, res, userData,userMeta){
                 res.send(  {code:400,error:'email already exist'} )
               }else{
                 res.send(  {code:400,error:'A error occured please report it on http://bugs.upon.one'} )
-                // console.log(msg)
               }
               
               
@@ -645,7 +456,7 @@ function handlePost(req, res, userData,userMeta){
             error.code == 11000? reportError(error.message)  : console.log(error)
              
           }else{
-            // sendCookie(salt)
+        
              //cookie will only be provided after verification
             sendVerificationEmail( qBody.email, 'new account', (data)=>{ 
 
@@ -668,7 +479,7 @@ function handlePost(req, res, userData,userMeta){
 
                 if(!info.verified) return res.send({error:'account not verified'})
 
-                sendCookie(info.cookie)
+                sendCookie(res,{username:info.username,id:info.id,email:info.email})
                 
                 //if not authorized make a redirect to the auth page and with the redirect variable
 
@@ -682,10 +493,7 @@ function handlePost(req, res, userData,userMeta){
 
       }
 
-      function sendCookie(cookie){
-          res.send( {code:200,msg:cookie} )
-          // console.log('logged in',cookie)
-      }
+
 
 
       break//rename login
@@ -697,19 +505,22 @@ function handlePost(req, res, userData,userMeta){
         res.send({code:code, error:error})
       }
 
-      qBody.db = JSON.stringify(qBody.db)
+      if(!developerData) return  failed('dev not logged in')
 
       if (!qBody.description) qBody.description = null //take from meta tag to dp
       if (!qBody.preCode) qBody.preCode = null
       if (!qBody.fees) qBody.fees = null
+
+      qBody.db = JSON.stringify(qBody.db)
+      qBody.bucket = JSON.stringify(qBody.bucket)
+      qBody.backendFunctions = JSON.stringify(qBody.backendFunctions)
 
       if (!qBody.meta) qBody.meta = null
 
       if (qBody.searchable === undefined )qBody.searchable = true
       if ( typeof qBody.searchable !== 'boolean' ) qBody.searchable = false
 
-      if (qBody.loginByDefault === undefined ) qBody.loginByDefault = true
-      if ( typeof qBody.loginByDefault !== 'boolean' ) qBody.loginByDefault = false
+
        //fixed searchable bug but still apps wont be affected
       
       if ( typeof qBody.name !== 'string' ) failed('name must be string')
@@ -719,203 +530,45 @@ function handlePost(req, res, userData,userMeta){
       if (qBody.preCode) qBody.preCode   = JSON.stringify(qBody.preCode)
       if (qBody.fees) qBody.fees  =  JSON.stringify(qBody.fees)
 
-      function allocateMemory(dataDB,existingRelation,theDatabaseName){
-
-          // console.log(db)
-
-                var relation = {}
-                var string_increment = -1
-                var number_increment = -1
-                var array_increment = -1
-
-                var originalSchema = dataDB.schema
-
-                if ( existingRelation ) { //previously originalSchema.memoryAllocation why?
-
-                  //changed existing relation
-
-                  for(key in existingRelation){
-
-                    if( key.indexOf('S_') !== -1){
-                      string_increment += 1
-                    }else if( key.indexOf('N_') !== -1){
-                      number_increment += 1
-                    }else if( key.indexOf('A_') !== -1){
-                      array_increment += 1
-                    }
-                  }
 
 
-
-                }
-
-                var uniqueField = null
-
-                for(let index in originalSchema){
-
-                  var field_value = originalSchema[index]
-
-                  var fieldType = typeof field_value === 'object'? field_value.type : field_value
-
-
-                  let validFieldType = ['array','number','string','unique']
-
-                  if( typeof fieldType !== 'string' ) throw Error('type:'+fieldType+' is invalid  at field: '+index+' on database: '+theDatabaseName)
-
-                  if( !validFieldType.includes( fieldType.toLowerCase() ) ) throw Error('type:'+fieldType+' is invalid  at field: '+index+' on database: '+theDatabaseName)
-
-
-
-                  let prohibitedFieldValues = {registered_writer_field:true}
-
-                  if( prohibitedFieldValues[index] ) throw Error('Memory allocation error, use of'+index) 
-
-
-
-                  if(fieldType === 'unique'){
-                    relation[index] = 'unique'
-                  }else{
-
-                    var fieldIndex = 0
-
-
-                    switch(fieldType.toLowerCase()){
-                      case 'array':
-                        fieldType = 'A'
-                        fieldIndex = array_increment += 1 
-                        break
-                      case 'string':
-                        fieldType = 'S'
-                        fieldIndex = string_increment += 1 
-                        break
-                      case 'number':
-                        fieldType = 'N'
-                        fieldIndex = number_increment += 1 
-                        break
-                    }
-
-
-                    var contrainsts = {N:11,A:6,S:11} //constraints on the number of fields available
-
-                    if ( fieldIndex >= ( contrainsts[fieldType] - 1 ) ){
-                      throw Error('Memory allocation error limit exceeded for:'+fieldIndex+'of type'+fieldType)
-                    }
-                    
-                    relation[index] = fieldType+'_'+fieldIndex
-                  }
-
-
-
-
-                } 
-
-                return relation //am I giving the memory allocation of the previous one
-      }
-
-      function addCron(callback){
-
-
-          if (!qBody.cron) return
-
-          if (qBody.cron){
-
-
-
-            let tasksPutValues = {}
-
-            for(let when of ['daily','weekly','monthly','quaterly','yearly']){
-
-              if (qBody.cron[when].length === 0){
-                tasksPutValues[when] = null
-                continue
-              } 
-              
-              tasksPutValues[when] = JSON.stringify( qBody.cron[when] ) //arrray of indivisual when
-               //so that our $ne query could work
-            }
-
-            db.law.findOneAndUpdate({ app:qBody.name },tasksPutValues,{new: true,runValidators: true },(error,msg)=>{
-              if(error) return failed(error.errMsg)
-              return callback({code:200})
-            })
-          } 
-      }
 
       function saveDB(callback){
 
         if(!qBody.db) return callback({code:200})
 
+        let tasksPutValues = {}
+        for(let when of ['daily','weekly','monthly','quaterly','yearly']){
+
+          if (qBody.cron[when].length === 0){
+            tasksPutValues[when] = null
+            continue
+          } 
+          tasksPutValues[when] = JSON.stringify( qBody.cron[when] ) //arrray of indivisual when //so that our $ne query could work
+
+        }
+
+
         db.law.findOne({ app:qBody.name }).then(rulesFound=>{
 
-          let newDatabase = JSON.parse(qBody.db)
-
-          //first time: allocate memory in the first time
-
           function updateDB(){
-
-            //old database
-            var oldDatabase = JSON.parse(rulesFound.DBs)
-
-
-            try{
-              newDatabase = memoryAllocationLoop(newDatabase,oldDatabase)
-            }catch(schemaErr){
-              return failed(schemaErr.message)
-            }
-
-            // var util = require('util')//really usefull
-            // console.log(util.inspect(newDatabase))
-            // console.log(oldDatabase, newDatabase)
-
-            //bug: anyone can change the database.....
-
-            db.law.findOneAndUpdate({ app:qBody.name },{DBs:newDatabase},{new: true,runValidators: true },(updateErr,doc)=>{
-
+            db.law.findOneAndUpdate({ app:qBody.name }, Object.assign({DBs:qBody.db, bucket:qBody.bucket, backendFunctions: qBody.backendFunctions }, tasksPutValues) ,{new: true,runValidators: true },(updateErr,doc)=>{
              if(updateErr) console.log(updateErr)
-                
-             
-
               callback({code:200})
-
            })
           }
 
-          function memoryAllocationLoop(newDatabase,oldDatabase){
-            for (let key in newDatabase){
 
-              // console.log(newDatabase[key],key)
-
-              let oldMemoryAllocation = null
-              if(oldDatabase) if (oldDatabase[key]) oldMemoryAllocation =  oldDatabase[key].memoryAllocation
-
-              
-                let newRelation  = allocateMemory( newDatabase[key], oldMemoryAllocation,key)
-                newDatabase[key].memoryAllocation = newRelation
-                //if warning is given then 
-                
-              
-              
-            }
-
-            return JSON.stringify(newDatabase)
-          }
 
           function writeDB(){
-            let newDatabase = JSON.parse(qBody.db)
-            //why isn't write db allocating db
 
-            try{
-              newDatabase = memoryAllocationLoop(newDatabase,null)
-            }catch(schemaErr){
-              return failed({error:schemaErr.message})
-            }
 
-     
-
-            var rule_save = new db.law({
-              app:qBody.name,
-              DBs: newDatabase
-            })
+            var rule_save = new db.law(Object.assign({
+              app:  qBody.name,
+              DBs: qBody.db,
+              bucket: qBody.bucket,
+              backendFunctions: qBody.backendFunctions 
+            },tasksPutValues) )
 
             rule_save.save(error=>{
 
@@ -938,45 +591,13 @@ function handlePost(req, res, userData,userMeta){
         })
       }
 
-      function saveAppSource(callback){
-        qBody.url = qBody.name+qBody.url
-       
-
-        // console.log(qBody.response)
-
-     
-
-        var appSource_save = new db.appSource({
-          url: qBody.url,
-          data: qBody.response
-        })
-
-        appSource_save.save(error=> {
-
-            if(!error) return callback({code:200})
-            
-            if (error.code == 11000) db.appSource.findOneAndUpdate({ url:qBody.url },{data:qBody.response},{new: true,runValidators: true },(error, doc) => {
-              
-              if (error) return console.log(error)
-              callback({code:200})
-              // console.log('appSource updated')
-            }) })
-      }
-
 
 
       checkAppPermission(()=>{
 
        saveDB(()=>{
 
-
-          addCron(()=>{
-
             res.send({code:200})
-
-          })
-
-
 
        }); 
 
@@ -990,7 +611,7 @@ function handlePost(req, res, userData,userMeta){
 
         db.apps.find({name:qBody.name} , function(err, info){
 
-          if (info.length == 0) {//add new doc
+          if (info.length == 0){//add new doc
 
             var newapp = new db.apps({
               name:qBody.name,
@@ -999,9 +620,8 @@ function handlePost(req, res, userData,userMeta){
               description:qBody.description,
               meta:qBody.meta,
               searchable:qBody.searchable,
-              owner:userData.id,
-              source:qBody.response,
-              loginByDefault:qBody.loginByDefault
+              owner:developerData.id,
+              source:qBody.response
             })
 
             newapp.save(error=>{
@@ -1010,7 +630,7 @@ function handlePost(req, res, userData,userMeta){
               callback()
 
             })
-          }else if(info[0].owner == userData.id){ //update doc if password matches
+          }else if(info[0].owner == developerData.id){ //update doc if password matches
 
             db.apps.findOneAndUpdate({name:qBody.name},
             {description:qBody.description,
@@ -1018,8 +638,7 @@ function handlePost(req, res, userData,userMeta){
               preCode: qBody.preCode,
               fees:qBody.fees,
               searchable:qBody.searchable,
-              source:qBody.response,
-              loginByDefault:qBody.loginByDefault
+              source:qBody.response
             },{new: true,runValidators: true}).then(doc => {
 
 
@@ -1037,10 +656,7 @@ function handlePost(req, res, userData,userMeta){
 
 
       break
-
-    case'getAppSource':
-      sendAppSource( qBody.app, (data)=>{res.send(data) } )
-      break
+    
     case'search':
       let query = qBody.query
       let type = qBody.type
@@ -1064,10 +680,10 @@ function handlePost(req, res, userData,userMeta){
 
         search_config['searchable'] = true
           
-        db.apps.find(search_config).limit(10).exec(function(err, info){
+        db.apps.find(search_config).limit(50).exec(function(err, info){
           data = []
           for(index of info){ data.push( {name:index.name} ) }
-
+  
           res.send( data ) 
         })
   
@@ -1076,34 +692,9 @@ function handlePost(req, res, userData,userMeta){
 
 
       break
-    case'scrap':
-      let heading = qBody.heading
-      let text = qBody.text
-      let head = qBody.head
-      let html = qBody.html
-      let url = qBody.app+':'+qBody.url
-
-      var scrap = new db.scrap({
-        url: url,
-        heading: heading,
-        text: qBody.text,
-        html:html,
-        head:head
-      })
-
-      scrap.save(error=>{
-
-        if(!error) return res.send({code:200,msg:'saved'})
-        if (error.code !== 11000) throw Error(error)
-
-        db.scrap.findOneAndUpdate({ url:url },{html:html, text:qBody.text, heading:qBody.heading,head:head},{new: true,runValidators: true },(error, doc) => {
-          if(error) return console.log(error)
-          res.send({code:200,msg:'updated'})
-        }) 
-        
-      })
+    default:
+      res.send({error:'request not recognized'})
       break
-    //to do get request file
   }  
 }
 

@@ -1,4 +1,4 @@
 apps
-client
 .env
 node_modules
+.vscode

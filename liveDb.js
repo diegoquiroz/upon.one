@@ -50,7 +50,7 @@ function livedbAddNewSocket(ws, req){ //live db
     
 
 
-    socketClients[clientId] = {user:null,socket:ws} //user is not required for live db
+    socketClients[clientId] = {user:null, socket:ws} //user is not required for live db
 
     
     //db -> schema, clients-> (user,token -> query)
@@ -108,6 +108,9 @@ function sendLiveDbToSocket(next){
 
 
   let data = next.fullDocument
+  if(!data) return //operation was delete doc
+
+  if(data) data = data.data
   let type = next.operationType
 
   //match is the where and data 
@@ -158,7 +161,7 @@ function sendLiveDbToSocket(next){
 
   if (!data) return console.log(' document deleted manually ')
 
-  let dbName = data.dbName
+  let dbName = next.fullDocument.dbName
   let appName = dbName.split('_')[0]
   dbName = dbName.split('_')[1]
 
@@ -177,8 +180,8 @@ function sendLiveDbToSocket(next){
 
 
     if (!dataFormat.permission) return onSuccess()
-    if (!dataFormat.permission.read) return onSuccess()
-    let permissionToDatabase = dataFormat.permission.read
+    if (!dataFormat.permission.findable) return onSuccess()
+    let permissionToDatabase = dataFormat.permission.findable
 
 
     //send logs too//it does not need log

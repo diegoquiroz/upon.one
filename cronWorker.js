@@ -51,7 +51,7 @@ function cronWorker(type,specificApp,callback){//callback: in case of manually r
       for(let index of arrrayOfCron){
 
           //$user is intentionally not provided
-          handleParse({log:pushLog, app:task.app, preCode:preCode , parse:index, type:'action', database: JSON.parse(task.DBs) }).then((data)=>{
+          handleParse({failure: console.log, appName:task.app, preCode:preCode , parse:index, via:'action', database: JSON.parse(task.DBs) }).then((data)=>{
 
           	// parse executed
 

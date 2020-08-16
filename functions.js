@@ -1,18 +1,23 @@
 if(!process.env.PORT) require('dotenv').config();
+var jwt = require('jsonwebtoken');
 
 const sgMail = require('@sendgrid/mail')
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 
+
+const jwtKey = "wolf_smiles_at_moon@cool#night"
+
 const cry = require('crypto')
 
 const db = require('./db.js')
 
-function getUserData(value,searchBy){
+
+function getUserData(value,searchBy,appName){
 
   return new Promise(resolve=>{
-     // if (!cookieid) return resolve(null)
-    let queryObj = {cookie:value}
+
+    if(!appName) appName = false
 
     if (searchBy == true){
       queryObj =  { $or: [{username: value}, {email: value}] }
@@ -20,84 +25,61 @@ function getUserData(value,searchBy){
       queryObj = {_id:value}
     }else if(searchBy === 'username'){
       queryObj = {username:value}
+    }else{
+
+      if(!appName) throw new Error('error appName doesnt exits')
+
+      var payload
+      try {
+        // Parse the JWT string and store the result in `payload`.
+        // Note that we are passing the key in this method as well. This method will throw an error
+        // if the token is invalid (if it has expired according to the expiry time we set on sign in),
+        // or if the signature does not match
+        payload = jwt.verify(value, jwtKey)
+      } catch (e) {
+        //if (e instanceof jwt.JsonWebTokenError) {
+          // if the error thrown is because the JWT is unauthorized, return a 401 error
+          //return res.status(401).end()
+       // }
+        // otherwise, return a bad request error
+        //return res.status(400).end()
+        resolve(null)
+      }
+    
+
+      
+      if(payload.appName !== appName) return resolve(null)
+
+      return resolve(payload)
+
+
     }
 
     db.users.findOne( queryObj, function(err, info){//to do test findone
 
 
 
-      if (err )return resolve(null, {error:err} )
-      if ( !info)return resolve(null, {error:'user not found'} )
+      if (err )return resolve(null, err )
+      if ( !info)return resolve(null, 'user not found' )
       resolve(info)
     })
   })
 }
-function checkBalance(subject,forApp){
-  //useuserid
-  return new Promise(resolve=>{
-
-      let sandboxed = false
-
-      if( process.env.PAYPAL_SANDBOXED === 'TRUE' ){
-        sandboxed = true
-      }
-
-      let query1 = { receiver:subject, status:'paid', sandboxed:sandboxed }
-      let query2 = {sender:subject, status:'paid' ,sandboxed:sandboxed}
-
-      if (forApp === true) {
-          let query1 = { app:subject, type:'u2a', status:'paid', sandboxed:sandboxed }
-          let query2 = {app:subject, type:'a2u', status:'paid' ,sandboxed:sandboxed}
-      }
-
-      db.transactions.find( query1 , function(err, info){
-          if (err) return console.log(err)
-          if (info.length === 0) return resolve(0)
-          
-          let credited = 0
-          for (let index of info){
-            credited += Number(index.amount)
-          }
-
-          withdraws(credited)
-        })
-
-
-      function withdraws(credited){
-        //why status done is not specified? because status being pending can be exploited
-
-        db.transactions.find(query2  , function(err, info){
-          if (err) return console.log(err)
-
-            let withdrawed = 0
-            for (let index of info){
-              withdrawed += index.amount
-            }
-
-            //save cut
-
-            //fees to not sent for virtual apps
-            //to do generalize how app name is sent
-
-            resolve( credited - withdrawed )
 
 
 
 
-       
+//subdomain
+function getSubdomain(req){
 
 
+  let sub = req.subdomains
 
-        })
-      }
-
-
-
-
-
-
-  })
+  sub.length <= 2? sub = 'home' : sub = sub[sub.length -1]
+  return sub 
 }
+
+
 function random(digits){
   if(digits) return Math.floor( Math.random() * Math.pow(10,digits) )//numbers 
   return Math.random().toString(36).substring(2, 15)+Math.random().toString(36).substring(2, 15) //string
@@ -134,15 +116,14 @@ function renameOutput(tobeoutputed,relation,uniquePrefix){
                   }else if (key === 'id'){
                     returnObject['id'] = tobeoutputed[key]
                   }else if (key === 'registered_writer_field'){ //hidden from user used for like and other notification
-                    returnObject['registered_writer_field'] = tobeoutputed[key] //dont show
+                    //returnObject['registered_writer_field'] = tobeoutputed[key] //dont show
                   }//exception for id
 
                 }
 
                 let theUniqueField = swappedRelation['unique'] 
 
-                // console.log(swappedRelation,theUniqueField , returnObject[ theUniqueField],'renaming output')
-                // console.log('uniquePrefix',uniquePrefix)
+           
                 if( returnObject[ theUniqueField] ){
                   
                   returnObject[ theUniqueField] = returnObject[ theUniqueField].replace(uniquePrefix,'')
@@ -178,7 +159,7 @@ function removeKey(object,keyname){
 function setNewVerificationCode(to){//for securityReson
     let code = random(6)
     db.users.findOneAndUpdate({ email:to },{verificationCode:code},{returnOriginal : false},function(error, doc){
-      // console.log(doc.userName+' settting email of:'+to)
+  
     })
     return code
 }
@@ -202,19 +183,20 @@ function sendEmail(to,message,subject,callback){
 
     sgMail.send(msg, (error, response) => {
 
-        // console.log('sending email')
+
         if(error){
             console.log(error);
             callback( {error:error} )
             //to get make callback for edge cases
         }else{
-          // console.log('email sent',response);
+          
           if (callback) return callback( {status:'email sent'} )
             
         }
 
       });
 }
+
 function sendVerificationEmail(to,context,callback){
 
     let code = setNewVerificationCode(to)
@@ -226,24 +208,17 @@ function sendVerificationEmail(to,context,callback){
 }
 
 
-function addUniquePrefix(fullDbName,unique){
-
-  if (!unique) unique = ''
-
-  return fullDbName+':'+unique
-}
-
 
 module.exports = {
 	getUserData: getUserData,
-	checkBalance: checkBalance,
 	random: random,
 	hash: hash,
 	renameOutput: renameOutput,
 	stringIt: stringIt,
-	removeKey: removeKey,
+  removeKey: removeKey,
+  getSubdomain:getSubdomain,
 	setNewVerificationCode: setNewVerificationCode,
 	sendEmail: sendEmail,
 	sendVerificationEmail: sendVerificationEmail,
-  addUniquePrefix: addUniquePrefix,
+  jwtKey:jwtKey,
 }

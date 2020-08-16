@@ -1,30 +1,37 @@
 {
-  "name": "uponOne",
+  "name": "upon-one",
   "version": "1.0.0",
-  "description": "Killing Servers",
+  "description": "All in one web dev library",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
     "test": "nodemon --inspect index.js",
-    "watch": "watchify client/main.js -o uponOne.js -v"
+    "finalize": "terser u.js -o u.js"
   },
   "author": "Arnav Singh",
   "license": "ISC",
   "dependencies": {
-    "@paypal/checkout-server-sdk": "^1.0.1",
     "@sendgrid/mail": "^6.4.0",
     "body-parser": "^1.19.0",
+    "cookie-parser": "^1.4.5",
     "dotenv": "^8.1.0",
     "express": "^4.16.4",
     "express-ws": "^4.0.0",
-    "mongoose": "^5.5.8",
+    "google-auth-library": "^6.0.6",
+    "gridfs-stream": "^1.1.1",
+    "jsonwebtoken": "^8.5.1",
+    "mongoose": "^5.9.28",
+    "mongoose-gridfs": "^1.2.48",
     "multer": "^1.4.2",
+    "multer-gridfs-storage": "^4.1.0",
     "node-cron": "^2.0.3",
     "node-fetch": "^2.6.0",
     "node-pos": "0.0.4",
     "nodemon": "^1.19.0",
-    "peer": "^0.2.10",
-    "peerjs-client": "^0.3.15",
-    "twit": "^2.2.11"
+    "puppeteer": "^5.0.0",
+    "twit": "^2.2.11",
+    "v8engine": "0.0.8",
+    "vm2": "^3.9.2",
+    "watchify": "^3.11.1"
   }
 }

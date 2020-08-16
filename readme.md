@@ -9,7 +9,7 @@ Features: Auth, No-SQL DB, Real-time DB, Room, Payment, cron-job, indexing(so th
 
 ```
 <script src="http://source.upon.one"></script><script class="private">
-server.start(uniqueAppName)
+one.deploy(uniqueAppName)
 </script>
 
 ```
@@ -27,7 +27,7 @@ notice values, required, default & unique (they do what they sound like)
 ```
 
 
-	server.db['YourCollectionName'] = {
+	one.db['YourCollectionName'] = {
 
 		schema:{
 	  		chatHistory:Array,
@@ -36,7 +36,7 @@ notice values, required, default & unique (they do what they sound like)
 	  		person2:{required:true,type:String},
 	  		notSeenBy:String
 	 		},
-	 	permission:{
+	 	intermediates:{
 
 		  update:{
 		   $or:[ {$equal:['$user.id','$field.person1'] } , {$equal: ['$user.id','$field.person2'] } ]
@@ -51,11 +51,12 @@ notice values, required, default & unique (they do what they sound like)
 	}
 
 
-// above code belongs to private script tag & above server.start
+// above code belongs to private script tag & above one.run
 
 
 ```
-Permissions will be processed every time a user tries to interact with the database (Update, Read or Write), This allows developers to query DB from client side without a serverside intermediate. 
+"Intermediates" will be processed every time a user tries to interact with the database (Update, Read or Write), the logic inside intermediate allows you to check permission and make additional query.
+
 
 <h3> Understanding the logic </h3> 
 
@@ -73,34 +74,34 @@ Built in function list
 
 Equal, greaterThan, smallerThan, multiply, add, divide, substract, select, function, let, read, write, update
 
-Querying DB supports the same syntax. Server.api(logic) for example
+Querying DB supports the same syntax. one.query(logic) for example
 
 ```
 //for reading
-server.api({$read:{on:’messages’, where:{chatId:uniqueId} } },console.log)
+one.query({$read:{on:’messages’, where:{chatId:uniqueId} } },console.log)
 
 //for writing
-server.api({$write:{on:’messages’, put:{chatId:uniqueId, person2:'chaplin251'}}},console.log)
+one.query({$write:{on:’messages’, put:{chatId:uniqueId, person2:'chaplin251'}}},console.log)
 
 //for update
-server.api({$update:{on:’messages’, where:{chatId:uniqueId}}},console.log)
+one.query({$update:{on:’messages’, where:{chatId:uniqueId}}},console.log)
 
 //even code
-server.api({$update:{on:’messages’, where:{chatId: {$add:[60,9]} }}},console.log)
+one.query({$update:{on:’messages’, where:{chatId: {$add:[60,9]} }}},console.log)
 ```
 
 Example project: <a href="https://github.com/itsarnavsingh/rubbit">Rubbit</a>
 
 <h3> Live Database </h3> 
 
-To listen for changes to the database you just say server.liveDb(query) 
+To listen for changes to the database you just say one.liveDb(query) 
 
 query could be: {on:’messages’, where:{chatId:uniqueId} } 
 
 so whenever chat ’messages’ collection updates. you can listen for them through 
 
 ```
-let aYoungObject = server.liveDb(query) 
+let aYoungObject = one.liveDb(query) 
 aYoungObject.on(‘data’, callback) 
 ```
 you can also listen for error 
@@ -118,7 +119,7 @@ let’s say you want to make a Battle Royal game. we will the idea of the room, 
 How to create a room
 
 ```
-let myRoom = server.room(name,capacity)
+let myRoom = one.room(name,capacity)
 ```
 
 The name could be anything, untill unless all members have it (by default capacity is 2)
@@ -126,7 +127,7 @@ The name could be anything, untill unless all members have it (by default capaci
 To receive data
 
 ```
-let myRoom = server.room(name,capacity)
+let myRoom = one.room(name,capacity)
 myRoom.on('data',callaback)
 ```
 
@@ -160,6 +161,84 @@ There is a list of things we didn’t cover, please leave a note on what you are
     cron job
     notification + like + follow apis
     Or a new feature? right?
+   
+   
+<h3>CMS</h3> 
+ By pressing Ctrl + Alt + A Admin pannel can be engaged, It provides CMS and Statistics Of all your apps
+    
+<h3>Best Practises</h3> 
+	* Javascript should not affect HTML before deployment otherwise processed HTML will be deployed
+	  one.onReady = callback provides this facility, Obsiously It must be declared outside backend script tag
+	* Script tag containing DB schema and simmilar sensitive configation must be attributed with 'backend' class
+	
+<h3>Precautions</h3> 
+* Never put one.run outside of a serverside class if file is being hosted otherwise when the hosted application will be run then file will keep on reloading source code but there is a precautionary measure implemented in the code. putting one.run outside of a script attributed with a serverside class is allowed if file is not being hosted like if you are developing a chrome extension where there is no need of hosting
+
+<h3>FAQ</h3> 	
+	* How is ownership decided?
+	ANS: When making first deployment, the user id used is assigned as the owner
+	
+<h3>Side Tips</h3>
+	* Always use breakpoint to inspect your code, It should be the first action to take even in cases where hit and trial method seems practical.
+
+<h3>Email: arnav010singh@gmail.com </h3> 
 
 
-</h3>     Email: arnav010singh@gmail.com </h3> 
+<h3>Setting up repo in local environment</h3>
+
+* Create .env file (by default windows saves .env as env.txt you have to choose no extension in extension list)
+* Go to c:\windows\system32\drivers\etc\hosts change localhost to localhost.com because shared cookies can't be set on domanins without extension, line starting with # are comments, add the line: 
+
+```
+127.0.0.1    localhost.com
+
+127.0.0.1    subdomainYouWantToWorkOn.localhost.com 
+````
+
+everytime you have to test a new subdomain locally you will have to add that subdomain to the host file as windows host file does not supports wildcard subdomain
+
+#development
+
+nodemon offers inspect but it is not able to exclude node js internal parts
+
+Instead, use node js debug, for that launch.json is setup. this way you can add breakpoint from within vscode. click on setup configuration in the debug tab in vscode.
+
+from now on vscode will handle starting the server and debuging. It is better than nodemon --inspect
+but it has a problem server won't restart on making changes to the server
+for that add following config to launch.json inside .vscode folder
+
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Launch Program",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "program": "${workspaceFolder}\\index.js",
+            "runtimeExecutable": "nodemon",
+            "restart": true,
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen"
+        }
+    ]
+}
+
+but note, for this you need nodemon installed globally for this to work
+
+note you will have to read error in terminal, dubug console is secondary
+
+you can't run child process with fork while with nodemon that was the reason behind
+switching to vscode debugger
+
+
+
+#Indexing
+
+Wildcard Indexes are the new cool feature in MongoDB, which allows you to index
+unpredictable data, https://www.youtube.com/watch?v=mUWZPdHopYs

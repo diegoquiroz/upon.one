@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auth redirect</title>
+</head>
+<body>
+
+    
+    <script class="donthost" src="u.js"></script>
+    <script class="donthost">
+        U.run('auth',{local:true})
+    </script>
+
+    <script>
+
+
+            if(U.configuration.job !== 'host') U.readUser().then(user=>{
+
+            if(!user){
+
+                switch(U.urlParam("loginType").toLowerCase()){
+                    case'upon':
+                        U.loginWithUponDotOne()
+                        break
+                    case"google":
+                        U.loginWithGoogle()
+                        break
+                }
+                
+            }
+        })
+
+    </script>
+</body>
+</html>
