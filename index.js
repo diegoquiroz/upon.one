@@ -102,6 +102,15 @@ app.get('*', async (req, res) => {
     // console.log(__dirname,file_name)
   }
 
+  
+
+  if(sub == 'www'){
+    let hostLink = req.subdomains
+    let wwwIndex = hostLink.indexOf('www')
+    hostLink[wwwIndex] = 'home'
+    return res.redirect('http://'+hostLink.join('.'))
+  } 
+
   if(path === '/u.js'){
     sendJS('./u.js')
   }else if(path === '/telepathy.js'){
@@ -200,6 +209,10 @@ function sendAppSource(fileName,callback){//find one
 app.post('/upload', function (req, res) {
 
   let appName = getSubdomain(req)
+  
+  function errorConnectingToDB(error){
+    res.send(error)
+  }
 
   giveConnection(appName,data=>{
 
@@ -233,8 +246,11 @@ app.post('/upload', function (req, res) {
       res.send({filename:newGeneratedName,url:req.body.bucket+'/'+newGeneratedName,code:200})
     
     })
-  })
+  },errorConnectingToDB)
+
 })
+
+
 
 async function processCookie(req){
     
@@ -260,6 +276,7 @@ app.post('/',(req, res) =>{
     try{
       handlePost(req, res, data, getSubdomain(req),giveConnection)
     }catch(error){
+      console.log('controlled handle post error',error)
       res.send({error:error.message})
     }
     

@@ -26,6 +26,47 @@ let U = new class{
     // this.declareComponents = this.declareComponents.bind(this)
 
     // window.addEventListener('load',this.declareComponents)
+  }collection(collectionName){
+    return new class{
+      constructor(){
+        this.collectionName = collectionName
+        this.find = this.find.bind(this)
+        this.search = this.search.bind(this)
+        this.update = this.update.bind(this)
+        this.delete = this.delete.bind(this)
+        this.getQuery = this.getQuery.bind(this)
+      }
+
+      getQuery(where,put,aditionalQuery){
+        if(!aditionalQuery) aditionalQuery = {}
+        return Object.assign({on:this.collectionName, where:where, put:put},aditionalQuery)
+      }
+
+      find(where,aditionalQuery){
+        return U.query({ $find: this.getQuery(where,null,aditionalQuery)})
+      }
+
+      
+      search(where,aditionalQuery){
+        return U.query({ $search: this.getQuery(where,null,aditionalQuery)})
+      }
+
+      count(where,aditionalQuery){
+        return U.query({ $count: this.getQuery(where,null,aditionalQuery)})
+      }
+
+      delete(where,aditionalQuery){
+        return U.query({ $delete: this.getQuery(where)})
+      }
+
+      update(where,put,aditionalQuery){
+        return U.query({ $update: this.getQuery(where,put)})
+      }
+
+      put(where,aditionalQuery){
+        return U.query({ $write: this.getQuery(null,put)})
+      }
+    }
   }uploadStaticFiles(staticFiles){
     //fetch
     U.staticFiles = staticFiles
@@ -81,14 +122,12 @@ let U = new class{
 
     async function uploadSource(){
       // if (window.location.protocol == 'https:' || window.location.protocol == 'http:') this.configuration.name = window.location.pathname.split('/')[1].split('.')[0]
-      for(let index of U.staticFiles){
-        if(!U.configuration.skipUploads) await U.fetchNhost(index)
-      }
+
 
         console.log('deploying...')
         U.deploying = U.say('deploying...')
 
-              this.post({data:this.configuration,type:'host'},data=>{
+              this.post({data:this.configuration,type:'host'},async (data)=>{
                   
                 if (data.error) if (data.error) return U.deploying.update(data.error)//error occured
                     
@@ -96,7 +135,9 @@ let U = new class{
 
                   this.info.port === 80? port = '' : ':'+this.info.port
                   this.print('http://'+this.configuration.name+'.'+this.info.host+':'+port)
-                  
+                  for(let index of U.staticFiles){
+                    if(!U.configuration.skipUploads) await U.fetchNhost(index)
+                  }
 
                     U.deploying.kill()
       
@@ -286,7 +327,7 @@ let U = new class{
         let saying = U.say('saving...')
         U.post({  data:{dbLink:data.dbLink}, type:'saveDbLink' }, (res) =>{
 
-          resolve(res.error)
+          if(res.error) return U.say(res.error)
           if(!res.error) asked.kill()
           
         })
@@ -297,7 +338,7 @@ let U = new class{
         {h3:'Go to atlas.mongodb.com and get a create a database with them & give us the link'},
         {input:{type:'database link',name:'new dbLink'}},
         {button:{onclick:submitDbLink,innerHTML:'Submit Link'}},
-        {button:{onclick:()=>{resolve(); asked.kill()},innerHTML:'Maybe tomorrow'}}
+        {button:{onclick:()=>{ asked.kill()},innerHTML:'Maybe tomorrow'}}
       ]
 
       let asked = U.ask(elements)
@@ -401,7 +442,7 @@ let U = new class{
   }openAdminPannel(){
     //load script
 
-    if(U.configuration.job == 'job') return U.say("Admin panel can't be accessed in production for highest security")
+  
 
     if(!localStorage.getItem('dev-cookie'))return U.login('DEVELOPER').then(U.openAdminPannel)
     let customElementAlredyDeclared = customElements.get('admin-pannel');
@@ -1460,7 +1501,7 @@ let U = new class{
       function changePassword(event,cred){
 
         let processingRequest = U.say('just a second')
-         U.post({ type:'verify_email_access',
+        U.post({ type:'verify_email_access',
 
           data:{
             username:cred.username,
@@ -1564,8 +1605,7 @@ let U = new class{
 
     return new Promise(finished=>{
 
-      if(U.configuration.job !=='host' && U.configuration.name !== 'auth') return window.location.href = U.getSubAppUrl('auth')+`/?appName=${U.configuration.name}`;
-
+ 
       function resolve(data){
         prompt.kill()
         finished(data)
@@ -1573,11 +1613,14 @@ let U = new class{
 
       let devLogin = false
 
-      let title = 'Developer login'
+      let title = 'Login to continue'
       if(loginFor == 'DEVELOPER'){
-        title = "Login to continue"
+        title = "Developer Login"
         devLogin = true
-      } 
+      }
+
+      if(!devLogin) if(U.configuration.job !=='host' && U.configuration.name !== 'auth') return window.location.href = U.getSubAppUrl('auth')+`/?appName=${U.configuration.name}`;
+      //redirect procedure is followed when a it is not dev login job is in production and app is not auth
   
       let prompt = U.ask([
         {h1:title},
@@ -1642,7 +1685,10 @@ let U = new class{
               })
               //if it is auth just reload otherwise set 
             }, (error)=>{
-              alert(JSON.stringify(error, undefined, 2));
+              if(error.details == 'Cookies are not enabled in current environment.') return U.say('Cookies are disabled, this might be because you are using incognito mode')
+              U.say('sorry! login with google has encontered a problem, please use login with upon.one instead ')
+              console.error(error)
+              //alert(JSON.stringify(error, undefined, 2));
             })
 
             googleButton.click()
@@ -1713,7 +1759,7 @@ let U = new class{
             saying.kill()
    
             if(data.error){
-              if(data.error === 'account not verified') return U.verifyEmail(cred.username,devLogin).then(resolve)
+              if(data.error === 'account not verified') return U.verifyEmail(cred.username, devLogin).then(resolve)
             } 
 
             if(data.code == 200){
@@ -1785,6 +1831,7 @@ let U = new class{
       let elements = [
         {h1:'Sign Up'},
         {h3:'yes! we are going to be best friends'},
+        {input:{name:'name', placeholder:'Full name', required:true}},
         {input:{name:'username', required:true}},
         {input:{name:'password', required:true,type:'password'}},
 
@@ -2657,7 +2704,16 @@ let U = new class{
             body: form
           }).then( response => response.json().then(postData=>{
             uploadingMsg.kill()
-           if(postData.error) throw Error('upload Error '+postData.error)
+           if(postData.error){
+             if(postData.error == 'dbLink not found'){
+               return U.changeDbLink().then(()=>{
+                U.utility.upload(file,bucketName,originalFileName).then(resolve)
+               })
+
+             }else{
+              throw Error('upload Error '+postData.error)
+             }
+           } 
 
             resolve(postData)
 

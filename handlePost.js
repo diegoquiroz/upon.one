@@ -212,73 +212,45 @@ function handlePost(req, res, processedCookieData,appName,giveConnection){
 
 
 
-      let user = null
-      let id = null
-      let cookie = null
-      let email = null
-        // if( return res.send({error:'wrong OTP'})
-
 
 
 
         
-        function proceedVerify_email_access(verificationCode){
+        function proceedVerify_email_access(userToVerify){
 
 
           //for email verification you need to be logged in
 
 
-
-
           qBody.verificationCode = qBody.verificationCode.trim()
 
-          if (qBody.verificationCode !== verificationCode) return res.send({error:'wrong verification code'  })
+          if (qBody.verificationCode !== userToVerify.verificationCode) return res.send({error:'wrong verification code'  })
 
             switch(qBody.job.toLowerCase()){
 
               case 'forgot_password':
                 if (!qBody.newPassword) return res.send({msg:'newPassword field required'})
-                db.users.findOneAndUpdate({ username:user },{password:hash(qBody.newPassword),verified:true },{new: true,runValidators: true }).then(msg=>{console.log('email verified '+qBody.username)})
+                db.users.findOneAndUpdate({ username:userToVerify.username },{password:hash(qBody.newPassword),verified:true },{new: true,runValidators: true }).then(msg=>{console.log('email verified '+qBody.username)})
                 break
               case 'verify_email':
-                db.users.findOneAndUpdate({ username:user },{verified:true},{new: true,runValidators: true }).then(msg=>{console.log('email verified '+qBody.username)})
+                db.users.findOneAndUpdate({ username:userToVerify.username },{verified:true},{new: true,runValidators: true }).then(msg=>{console.log('email verified '+qBody.username)})
                 break
             }
             //this setup will work for both the condition
 
             //shound we make verification mandatory for cookies to be assigned
             
-            sendCookie(res,{username:user, id:id,email:email}) //in case of otp breach session can be breached but it doesn't matters as it can do any thing due to localstorage it is already in secure and cookies can be stolen
-            let code = setNewVerificationCode(email)//change verification code one it is used
+            sendCookie(res,{name:userToVerify.name, username:userToVerify.username, id:userToVerify.username.id, email:userToVerify.username.email}) //in case of otp breach session can be breached but it doesn't matters as it can do any thing due to localstorage it is already in secure and cookies can be stolen
+            let code = setNewVerificationCode(userToVerify.email)//change verification code one it is used
             // type === 'otp'? res.send({msg:'account verified'}) : 
         }
 
-        var personData = qBody.devLogin? developerData : userData
         
-        if (qBody.job.toLowerCase() == 'verify_email'){//for verifying email
-          user = personData.username
-          id = personData.id
-          email = personData.email
-
-
-          getUserData(user,true).then(data=>{
-            proceedVerify_email_access(data.verificationCode)
-          })
-
+        if(qBody.username){//for forgot password
           
-        }else if(qBody.username){//for forgot password
-          
-
-          getUserData(qBody.username,true).then(data=>{
-
-            if (!data) return res.send({error:'username not found'})
-
-            id = data.id
-            cookie = data.cookie
-            user = data.username
-            email = data.email
-            proceedVerify_email_access(data.verificationCode)
-          
+          getUserData(qBody.username,true).then(userToVerify=>{
+            if (!userToVerify) return res.send({error:'username not found'})
+            proceedVerify_email_access(userToVerify)
           })
             
         }else{
@@ -337,7 +309,7 @@ function handlePost(req, res, processedCookieData,appName,giveConnection){
         db.users.findOne({email: payload.email} , function(err, info){
 
           if(info){
-            sendCookie(res,{username:info.username,id:info.id,email:info.email})
+            sendCookie(res,{name:info.name,username:info.username,id:info.id,email:info.email})
           }else{
             
 
@@ -349,7 +321,6 @@ function handlePost(req, res, processedCookieData,appName,giveConnection){
               birthday:birthday,
               gender:gender,
               googleId:googleUserId,
-              googleAuthToken:token,
               profile:payload.picture,
               verified:true,
               verificationCode:null
@@ -358,7 +329,7 @@ function handlePost(req, res, processedCookieData,appName,giveConnection){
           user_save.save(error=>{
             if(error,info){
               if(error) return res.send({error:error.message})
-              sendCookie(res,{username:info.username,id:info.id,email:info.email})
+              sendCookie(res,{cookie:info.name, username:info.username, id:info.id, email:info.email})
             }
           })
 
@@ -424,6 +395,7 @@ function handlePost(req, res, processedCookieData,appName,giveConnection){
         }
         
         var user_save = new db.users({
+            name:qBody.name,
             username:qBody.username,
             password:qBody.password,
             email:qBody.email,

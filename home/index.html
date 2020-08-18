@@ -123,8 +123,8 @@
     var typed = new Typed('#description', options);
 
 </script>
-<script src="/u.js"></script>
-<script class="serverside">
+<script class="dontHost" src="http://source.app.localhost:8080"></script>
+<script class="dontHost" >
     U.db['documentationPage'] = {schema:{
         content:String,
         title:String
@@ -134,7 +134,8 @@
 
     }
 
-    U.run('home',{local:true,host:false})
-    //U.uploadStaticFiles(['favicon.png','main.css'])
+    U.uploadStaticFiles(['/favicon.png','/main.css','/docs.html'])
+    U.run('home',{local:true,host:true})
+    
 </script>
 </html>

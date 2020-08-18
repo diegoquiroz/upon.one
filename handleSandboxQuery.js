@@ -291,10 +291,7 @@ function handleQuery(type,par,via,parentRange,prop,handleParse){
                     if (par.limit) sortBy.limit = par.limit//document limit
 
                     if (par.sort){
-                      if (!par.sort.by) return resolve({error:'sort field not declared'})
-                      sortBy.sort[par.sort.by] =  par.sort.order 
-                    }else{
-                      sortBy.sort['created_at'] = 'descending'
+                      sortBy.sort =  par.sort
                     }
 
 
@@ -371,7 +368,7 @@ function handleQuery(type,par,via,parentRange,prop,handleParse){
 
                         {$search: {
                           "text": {
-                            "query": par.for,
+                            "query": par.where,
                             "path": par.field
                           }
                         }},
