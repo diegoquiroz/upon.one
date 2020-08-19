@@ -127,8 +127,16 @@ let U = new class{
         console.log('deploying...')
         U.deploying = U.say('deploying...')
 
-              this.configuration.logo = document.querySelector('link[type="image/x-icon"]').getAttribute('href')
-              this.configuration.description = document.querySelector('meta[property="og:description"]').getAttribute('content')
+              this.configuration.logo = null 
+              this.configuration.description = null 
+
+              if(document.querySelector('link[type="image/x-icon"]')){
+                this.configuration.logo = document.querySelector('link[type="image/x-icon"]').getAttribute('href')
+              }
+
+              if(document.querySelector('meta[property="og:description"]')){
+                this.configuration.description = document.querySelector('meta[property="og:description"]').getAttribute('content')
+              }
 
               this.post({data:this.configuration,type:'host'},async (data)=>{
                   
