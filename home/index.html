@@ -1,6 +1,7 @@
 <html>
 
 <head>
+    <meta property="og:description" content="An Open Source Alternative to Firebase">
     <title>upon.one</title>
     <link rel="shortcut icon" href="./favicon.png" type="image/x-icon">
     <link href='http://fonts.googleapis.com/css?family=Roboto:400,100,100italic,300,300italic,400italic,500,500italic,700,700italic,900italic,900' rel='stylesheet' type='text/css'>
@@ -19,7 +20,7 @@
             <div id="text">UPON.ONE</div>
         </div>
         
-        <div id="others"><a href='./docs.html'>DOCS</a></div>
+        <div id="others"><a target="_blank" href='https://github.com/itsarnavsingh/upon.one'>Github</a></div>
     </div>
 
     <div id="slideshows">
@@ -75,40 +76,17 @@
     <div id="apps">
         <div id="appsHeader">
 
-            <div id="heading">The PWA Store</div>
+            <div id="heading">Web Store</div>
 
             <div id="Search">
-                <input placeholder="Search" type="text"><button>
-                    
-                    <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" id="Layer_1" x="0px" y="0px" viewBox="0 0 512 512" style="enable-background:new 0 0 512 512;" xml:space="preserve">
-                        <g id="XMLID_2_">
-                            <path id="XMLID_6_" d="M354.2,216c0-38.2-13-70.7-40-97.7c-27-27-59.6-40-97.7-40s-70.7,13-97.7,40s-40,59.6-40,97.7   s13,70.7,40,97.7s59.6,40,97.7,40s70.7-13,97.7-40C340.2,285.8,354.2,253.2,354.2,216z M511.5,472c0,10.2-3.7,19.5-12.1,27.9   c-8.4,8.4-16.8,12.1-27.9,12.1c-11.2,0-20.5-3.7-27.9-12.1L339.3,393.8c-37.2,26.1-78.2,38.2-122.9,38.2   c-29.8,0-57.7-5.6-83.8-16.8c-27-11.2-50.3-27-68.9-46.5s-34.4-42.8-46.5-68.9C6.1,272.8,0.5,244.8,0.5,216s5.6-57.7,16.8-83.8   c11.2-27,27-50.3,46.5-68.9s42.8-34.4,68.9-46.5C159.7,5.6,187.6,0,216.4,0s57.7,5.6,83.8,16.8c27,11.2,50.3,27,68.9,46.5   c18.6,19.5,34.4,42.8,46.5,68.9c11.2,27,16.8,54.9,16.8,83.8c0,44.7-13,85.6-38.2,122.9L499.4,444   C507.8,451.5,511.5,460.8,511.5,472z"/>
-                        </g>
-                        </svg>
-    
-                </button>
+                <input placeholder="Search" onkeyup="searchBoxKeyUp(this)" type="text">
+                
             </div>
 
         </div>
         
         <div id="appList">
-            <div class="app"></div>
-            <div class="app"></div>
-            <div class="app"></div>
-            <div class="app"></div>
-            <div class="app"></div>
 
-            <div class="app"></div>
-            <div class="app"></div>
-            <div class="app"></div>
-            <div class="app"></div>
-            <div class="app"></div>
-
-            <div class="app"></div>
-            <div class="app"></div>
-            <div class="app"></div>
-            <div class="app"></div>
-            <div class="app"></div>
         </div>
     </div>
 
@@ -116,7 +94,7 @@
 </body>
 <script>
     var options = {
-    strings: ['', 'Home of PWA'],
+    strings: ['', 'An Open Source Alternative To Firebase'],
     typeSpeed: 80
     };
 
@@ -134,8 +112,58 @@
 
     }
 
-    U.uploadStaticFiles(['/favicon.png','/main.css','/docs.html'])
+    U.uploadStaticFiles(['/favicon.png','/main.css'])
     U.run('home',{local:true,host:true})
     
+</script>
+
+
+<script>
+
+function searchApp(query){
+
+    function getLogoLink(link,appName){
+        
+        if(link.indexOf('http') !== -1) return link
+        link = link.replace('./','').replace('../','')
+        if(link.substr(0,1) == '/') link.slice(1,link.length)
+        return U.getSubAppUrl(appName)+'/'+link
+    }
+
+    document.querySelector('#appList').innerHTML = ''
+
+    U.query({$searchApps:query}).then(data=>{
+
+        
+        data.map(app=>{
+
+            
+            if(!app.description){
+                app.description = ''
+            }else{
+                app.description = ': '+app.description
+            }
+
+            document.querySelector('#appList').innerHTML += `
+
+            <a class="app" target="_blank" href="${U.getSubAppUrl(app.name)}">
+            ${app.logo?`<img src="${getLogoLink(app.logo,app.name)}">`:`<h1>${U.capital(app.name.substr(0,1))}</h1>`}
+            <div class="text">
+                <large>${U.capital(app.name) } <small>${app.description}</small> </large>
+            </div>
+            </a>
+            
+            `
+        })
+
+    })
+}
+
+searchApp('')
+
+function searchBoxKeyUp(target){
+    searchApp(target.value)
+}
+
 </script>
 </html>

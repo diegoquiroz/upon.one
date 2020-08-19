@@ -153,7 +153,7 @@ function handlePost(req, res, processedCookieData,appName,giveConnection){
         if(developerData.id != info_main.owner) return res.send({error:'permision denied'})
         
         db.law.findOneAndUpdate({app:appName},{dbLink:qBody.dbLink},function(err, info_main){
-          res.send({code:200})
+          res.send({code:200,msg:info_main})
         })
 
       })
@@ -593,7 +593,9 @@ function handlePost(req, res, processedCookieData,appName,giveConnection){
               meta:qBody.meta,
               searchable:qBody.searchable,
               owner:developerData.id,
-              source:qBody.response
+              source:qBody.response,
+              logo:qBody.logo,
+              description:qBody.description
             })
 
             newapp.save(error=>{
@@ -610,7 +612,9 @@ function handlePost(req, res, processedCookieData,appName,giveConnection){
               preCode: qBody.preCode,
               fees:qBody.fees,
               searchable:qBody.searchable,
-              source:qBody.response
+              source:qBody.response,
+              logo:qBody.logo,
+              description:qBody.description
             },{new: true,runValidators: true}).then(doc => {
 
 
@@ -627,42 +631,7 @@ function handlePost(req, res, processedCookieData,appName,giveConnection){
       }
 
 
-      break
     
-    case'search':
-      let query = qBody.query
-      let type = qBody.type
-      let search_config = {'$text': {'$search': query} }
-
-      if(!query) search_config = {} 
-
-
-      if(type === 'sites'){
-
-        db.scrap.find(search_config).limit(10).exec((error, info_read)=>{
-
-          if(error) return res.send({error:info_read})
-          res.send(info_read)
-
-        })
-
-      }else{
-
-        // /$ne
-
-        search_config['searchable'] = true
-          
-        db.apps.find(search_config).limit(50).exec(function(err, info){
-          data = []
-          for(index of info){ data.push( {name:index.name} ) }
-  
-          res.send( data ) 
-        })
-  
-
-      }
-
-
       break
     default:
       res.send({error:'request not recognized'})

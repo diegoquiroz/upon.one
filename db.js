@@ -12,6 +12,7 @@ let apps = new mongoose.Schema({
   },
   hash:String,
   description:String,
+  logo:String,
   owner:String,
   about:String,
   meta:String,

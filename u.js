@@ -127,6 +127,9 @@ let U = new class{
         console.log('deploying...')
         U.deploying = U.say('deploying...')
 
+              this.configuration.logo = document.querySelector('link[type="image/x-icon"]').getAttribute('href')
+              this.configuration.description = document.querySelector('meta[property="og:description"]').getAttribute('content')
+
               this.post({data:this.configuration,type:'host'},async (data)=>{
                   
                 if (data.error) if (data.error) return U.deploying.update(data.error)//error occured
@@ -135,14 +138,15 @@ let U = new class{
 
                   this.info.port === 80? port = '' : ':'+this.info.port
                   this.print('http://'+this.configuration.name+'.'+this.info.host+':'+port)
+
+                  U.deploying.kill()
+
                   for(let index of U.staticFiles){
                     if(!U.configuration.skipUploads) await U.fetchNhost(index)
                   }
 
-                    U.deploying.kill()
-      
-
-              })         
+                    
+              })     
         
     }
 
@@ -324,19 +328,22 @@ let U = new class{
 
     
       function submitDbLink(event,data){
-        let saying = U.say('saving...')
+        let saying = U.say('saving...'+data.dbLink)
         U.post({  data:{dbLink:data.dbLink}, type:'saveDbLink' }, (res) =>{
 
           if(res.error) return U.say(res.error)
           if(!res.error) asked.kill()
-          
+          resolve(res)
+
         })
         saying.kill()
+
+        
       }
 
       let elements = [
         {h3:'Go to atlas.mongodb.com and get a create a database with them & give us the link'},
-        {input:{type:'database link',name:'new dbLink'}},
+        {input:{placeholder:'database link',name:'dbLink'}},
         {button:{onclick:submitDbLink,innerHTML:'Submit Link'}},
         {button:{onclick:()=>{ asked.kill()},innerHTML:'Maybe tomorrow'}}
       ]
@@ -344,57 +351,31 @@ let U = new class{
       let asked = U.ask(elements)
 
     })
-  }query(query,functionR,adminMode){
+  }async query(query,adminMode){
 
     if(!adminMode)adminMode = false
+
+    let apiData = await U.post({adminMode:adminMode, data:query,type:'db',cookie:localStorage.getItem("file-protocol-cookie") })
+
+    if(apiData.data){
     
-    executeApi = executeApi.bind(this)
-    
-    function executeApi(){
-      //to do: remove response process json on post
-      U.post({  adminMode:adminMode, data:query,type:'db',cookie:localStorage.getItem("file-protocol-cookie") }, (apiData) =>{
+      if(apiData.data.error == 'Login required' || apiData.data.error == 'undefined: user'){
+        await U.login()
+        return await U.query(query,adminMode)
+      }else if(apiData.data.error == 'dbLink not found' && !adminMode){
 
-
-      //how does error handling of handleParse works?
-
-      if(apiData.data){
-      
-        if(apiData.data.error == 'Login required' || apiData.data.error == 'undefined: user'){
-          U.login()
-        }
-
-        if(apiData.data.error == 'dbLink not found'){
-
-
-
-          U.changeDbLink().then((error)=>{
-            if(!error) U.query(query,functionR,adminMode)
-          })
-
-
+        let error = await U.changeDbLink()
+        if(!error){
+          return await U.query(query,adminMode)
         }
 
       }
-        if(apiData.data) if(apiData.data.error) throw Error( JSON.stringify(query)+' has an error: '+JSON.stringify(apiData.data.error) )
-        
-        functionR(apiData.data,apiData.meta)//to document the first arg is data and the other is meta
 
-      })
     }
 
-    if (!functionR){
-
-      // console.log('returning new promise')
-      return new Promise(resolve=>{
-
-        functionR = resolve
-        executeApi()
-
-      })
-
-    }else{
-      executeApi()
-    }
+    if(apiData.data) if(apiData.data.error) throw Error( JSON.stringify(query)+' has an error: '+JSON.stringify(apiData.data.error) )
+    
+    return apiData.data//to document the first arg is data and the other is meta
 
     //on login error tell user to login and call the same function
   }post(dataTobeSent,callback){
@@ -578,7 +559,7 @@ let U = new class{
         }
 
         async deleteDocument(){
-          let deleteDoc = await U.query({$delete:{ on:this.collectionName, where:{ id:this.document.id } }},null,true)
+          let deleteDoc = await U.query({$delete:{ on:this.collectionName, where:{ id:this.document.id } }},true)
           this.document = null
         }
 
@@ -713,7 +694,7 @@ let U = new class{
             query =  {$update: baseQuery}
           }
 
-          let newDoc = await U.query(query,null,true)
+          let newDoc = await U.query(query,true)
           if(newDoc.error) return console.warn(newDoc)
 
           if(this.type == 'update'){
@@ -803,7 +784,7 @@ let U = new class{
 
         refresh(){
 
-          U.query({$find:{on:this.collectionName}},null,true).then(data=>{
+          U.query({$find:{on:this.collectionName}},true).then(data=>{
 
             if(data.error) return console.warn(data.error)
 
@@ -851,10 +832,7 @@ let U = new class{
             <div id='cmsOptions'>
               <button @click="${this.toggleEditMode.bind(this)}"> + Document </button>
               <button> Edit Schema </button>
-              <button @click="${()=>{
-                U.openAdminPannel()
-                U.changeDbLink()
-              }}"> Change Database Link</button>
+
             </div>
 
             <div id='cmsArea'>
@@ -895,6 +873,7 @@ let U = new class{
               collections:Array,
               currentTab:String,
               errorMsg:String,
+              showMessage:String,
               display:String
             }
           }
@@ -903,6 +882,7 @@ let U = new class{
         super()
         this.dbData = null
         this.display = 'block'
+        this.showMessage = 'Please Wait'
         this.prevOverflowValue = document.body.style.overflowY
         U.toggleAdminPannel = ()=>{
 
@@ -1189,18 +1169,20 @@ let U = new class{
 
           firstUpdated(){
             
-            U.query({$readDBconfig:null}, (apiData) =>{
+            
+            U.query({$readDBconfig:null},true).then( (apiData) =>{
 
 
-              if(apiData.error){
-                this.errorMsg = apiData.error
-                return
-              }
-
+              if(!apiData) return this.dbData = []
 
               this.dbData =  JSON.parse(apiData.DBs)
               console.log(this.dbData)
-            },true)
+
+            }).catch(error=>{
+              console.log(error)
+              this.showMessage = error.message
+            })
+
           }
 
 
@@ -1222,12 +1204,16 @@ let U = new class{
 
             <div id='header'>
               <button class='close'>CMS</button>
+              <button @click="${()=>{
+                U.openAdminPannel()
+                U.changeDbLink()
+              }}"> Change Database Link</button>
               <h1 class='mainHeading'>Admin Pannel</h1>
             </div>
 
             <console-logs></console-logs>
 
-              ${this.dbData? html`<database-section .dbData='${this.dbData}'> </database-section>`:html`<center><h1> Please wait</h1></center>`}
+              ${this.dbData? html`<database-section .dbData='${this.dbData}'> </database-section>`:html`<center><h1> ${this.showMessage}</h1></center>`}
 
 
               </div>
@@ -1255,8 +1241,19 @@ let U = new class{
           this.refresh()
         }
 
-        async refresh(){
-            this.logs = await U.query( {$readLogs:10} )
+        refresh(){
+     
+         U.query( {$readLogs:10},true ).then(data=>{
+
+            this.logs = data
+
+          }).catch(error=>{
+            console.log(error)
+            this.logs = [{log:error.message}]
+
+          })
+
+            
         }
 
         static get styles(){
@@ -1561,7 +1558,7 @@ let U = new class{
       }else{
         
         //if someone tampers with localStorage 
-        U.query('$user',function(whole){
+        U.query('$user').then(function(whole){
 
           if(typeof whole === 'undefiend') return U.logout()
 
@@ -1752,7 +1749,7 @@ let U = new class{
       function processLogin(event,cred){
 
       
-        let saying = U.say('just a second '+U.capitalizeFirstLetter(cred.username))
+        let saying = U.say('just a second '+U.capital(cred.username))
 
           U.post({type:'loginOrSignup',data:{devLogin:devLogin,  newAccount:false, username: cred.username.toLowerCase() , password:cred.password }},data=>{
 
@@ -2022,13 +2019,13 @@ let U = new class{
     sheet.insertRule(selector + "{" + propText + "}", sheet.cssRules.length);
   
 
-  }capitalizeFirstLetter(string){
+  }capital(string){
     if(!string) return string
     if(string.split(' ').length > 1){
       let newString = ''
 
       for(let index of string.split(' ')){
-        newString += U.capitalizeFirstLetter(index)+' '
+        newString += U.capital(index)+' '
       }
 
       newString = newString.trim()
@@ -2706,9 +2703,13 @@ let U = new class{
             uploadingMsg.kill()
            if(postData.error){
              if(postData.error == 'dbLink not found'){
+
                return U.changeDbLink().then(()=>{
                 U.utility.upload(file,bucketName,originalFileName).then(resolve)
                })
+
+
+
 
              }else{
               throw Error('upload Error '+postData.error)

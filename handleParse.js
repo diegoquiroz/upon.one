@@ -190,6 +190,16 @@ function handleParse(passedProp,overwrite){
                   return {'$and':val}
                 }in(val){
                   return {'$in':val}
+                }async searchApps(appToSearch){
+
+                  let search_config = {searchable:true}
+                  
+                  if(appToSearch){
+                    search_config['$text'] = {'$search': appToSearch}
+                  }
+                    
+                  return await db.apps.find(search_config,['name', 'logo','description'])
+
                 }ne(val){
                   return {'$ne':val}
                 }nin(val){
