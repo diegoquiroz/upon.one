@@ -108,7 +108,7 @@ app.get('*', async (req, res) => {
     let hostLink = req.subdomains
     let wwwIndex = hostLink.indexOf('www')
     hostLink[wwwIndex] = 'home'
-    return res.redirect('http://'+hostLink.join('.'))
+    return res.redirect('http://'+hostLink.reverse().join('.'))
   } 
 
   if(path === '/u.js'){
