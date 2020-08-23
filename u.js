@@ -26,6 +26,23 @@ let U = new class{
     // this.declareComponents = this.declareComponents.bind(this)
 
     // window.addEventListener('load',this.declareComponents)
+
+    //----------------------Set cookie from url param----------------------------------------
+
+      if(this.urlParam('cookie')){
+        let cookie = this.urlParam('cookie')
+        let devLogin = this.urlParam('devLogin')
+
+        if(devLogin !== 'false'){
+          console.log('setting dev cookie')
+          localStorage.setItem('dev-cookie',cookie)
+        }else{
+          console.log('setting user cookie')
+          document.cookie = `user-cookie=${cookie}; expires=Sun, 1 Jan 2023 00:00:00 UTC; path=/`
+        }
+      }
+
+    //----------------------------------------------------------------------------------------
   }collection(collectionName){
     return new class{
       constructor(){
@@ -160,19 +177,6 @@ let U = new class{
 
     async function prepSourceExtraction(){
         
-
-
-        
-
-        //If beta duplicate is attempted
-        if (this.configuration.name.indexOf('beta') !== -1) return console.warn('app name cant have beta use beta:true in the second argument')
-
-
-        if(this.configuration.beta === true){
-          this.configuration.name = 'beta-'+this.configuration.name
-          this.configuration.searchable = false
-          //make a new instance that shares the same db? no does not shares the database. if we wont keep the database common how can we test if new users like it or not
-        }
 
 
         if (typeof this.configuration.host !== 'undefined'){
@@ -1478,14 +1482,15 @@ let U = new class{
     return U.newSocketJob(query,'room')
   }logDevOut(){
     localStorage.removeItem('dev-cookie')
+  }deleteCookie(name) {
+    document.cookie = name+'=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
   }logout(){
 
     U.say('Logging you out..')
     localStorage.removeItem('user')
     localStorage.removeItem('file-protocol-cookie')
-    U.post({ type:'logout' },()=>{
-       location.href = U.getSubAppUrl('auth')+`/?logout=${location.href}`
-    })
+    U.deleteCookie('user-cookie')
+    location.href = U.getSubAppUrl('auth')+`/?logout=${location.origin}`
 
   }search(query,type){
 
@@ -1624,7 +1629,7 @@ let U = new class{
         devLogin = true
       }
 
-      if(!devLogin) if(U.configuration.job !=='host' && U.configuration.name !== 'auth') return window.location.href = U.getSubAppUrl('auth')+`/?appName=${U.configuration.name}`;
+
       //redirect procedure is followed when a it is not dev login job is in production and app is not auth
   
       let prompt = U.ask([
@@ -1641,83 +1646,18 @@ let U = new class{
     return new Promise(loginCompleted=>{
 
       let pleaseWait = U.say('please Wait')
+      const clientId = '140572074409-ijht2s8v0ldnotak190gbqi4gh8ci72e.apps.googleusercontent.com'
+      const redirectUri = U.getSubAppUrl('auth')
+      const responseType = 'code'
+      const scope = 'profile email openid https://www.googleapis.com/auth/user.gender.read https://www.googleapis.com/auth/user.birthday.read'
+      const state = JSON.stringify({ appName: U.configuration.name, devLogin:devLogin, redirect:location.origin, redirectUri:redirectUri })
 
-      let clientId = '140572074409-ijht2s8v0ldnotak190gbqi4gh8ci72e.apps.googleusercontent.com'
-      document.head.innerHTML += '<meta name="google-signin-client_id" content="'+clientId+'">'
-      let googleButtonLibrary = document.createElement('script')
-      googleButtonLibrary.setAttribute('src','https://apis.google.com/js/platform.js')
-      googleButtonLibrary.onload = promptGoogleLogin
-       
+      document.location = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&state=${state}&redirect_uri=${redirectUri}&scope=${scope}&response_type=${responseType}&access_type=offline&include_granted_scopes=true`
+
+      return 
       
-
-      function promptGoogleLogin(){
-
-        pleaseWait.kill()
-
-        let googleButton = document.createElement('button')
-    
-
-        gapi.load('auth2', function(){
-
-          let auth2 = gapi.auth2.init({
-            client_id: clientId,
-            cookiepolicy: 'single_host_origin',
-            scope:'profile email openid https://www.googleapis.com/auth/user.gender.read https://www.googleapis.com/auth/user.birthday.read'
-          });
-
-          auth2.attachClickHandler(googleButton, {},
-            (googleUser)=>{
-
-              //get auc from google
-
-              console.log(googleUser.getAuthResponse())
-
-              let pleasewait2 = U.say('please Wait')
-              getAucFromGoogleToken( googleUser.getAuthResponse()).then(data=>{
-                pleasewait2.kill()
-                //logout to remove google's cookie so that dev login and user login don't intefere
-                //google login saves cookie so that payload can be accessed at a later time
-                //we don't need that
-                var auth2 = gapi.auth2.getAuthInstance();
-                auth2.signOut().then(function () {
-                  U.processLoginResolve(data,devLogin)
-                  loginCompleted(data)
-                });
-
-
-
-
-              })
-              //if it is auth just reload otherwise set 
-            }, (error)=>{
-              if(error.details == 'Cookies are not enabled in current environment.') return U.say('Cookies are disabled, this might be because you are using incognito mode')
-              U.say('sorry! login with google has encontered a problem, please use login with upon.one instead ')
-              console.error(error)
-              //alert(JSON.stringify(error, undefined, 2));
-            })
-
-            googleButton.click()
-
-        })
-        async function getBirthdayNgender(token){
-          return await fetch('https://content-people.googleapis.com/v1/people/me?personFields=birthdays,genders&access_token='+token).then(data=>data.json())
-        }
-
-        
-        async function getAucFromGoogleToken(payload){
-          let genderAndBirthday = await getBirthdayNgender(payload.access_token)
-          return await U.post({type:'getAucFromGoogleToken', data:{genderAndBirthday:genderAndBirthday, id_token:payload.id_token, devLogin:devLogin}})
-        }
-
-        
-
-
-      }
-
-      document.body.appendChild(googleButtonLibrary)
-      //the loginWithGoogleButtonWasClicked
-      //instantiate it and click it virtually
     })
+
   }processLoginResolve(data,devLogin){
 
     if(!data) return
@@ -1737,6 +1677,9 @@ let U = new class{
 
     return new Promise(loginCompleted=>{
 
+      //only users in production mode is redirected who are not on auth page
+      if(!devLogin) if(U.configuration.job !=='host' && U.configuration.name !== 'auth') return window.location.href = U.getSubAppUrl('auth')+`/?appName=${U.configuration.name}`;
+      
       
       function resolve(data){
 

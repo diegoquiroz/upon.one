@@ -10,7 +10,7 @@
     
     <script class="donthost" src="u.js"></script>
     <script class="donthost">
-        U.run('auth',{local:true})
+        U.run('auth',{local:false})
     </script>
 
     <script>
@@ -19,7 +19,7 @@
             if(U.configuration.job !== 'host') U.readUser().then(user=>{
 
             if(!user){
-                    U.login()
+                    U.loginWithUponDotOne()
             }else{
                 document.body.innerHTML = "Loggin in as"+user.username
             }

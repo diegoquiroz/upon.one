@@ -24,7 +24,48 @@ function executeJS(obj){
       obj.sandboxGlobalContext.done = done
       obj.sandboxGlobalContext.errorOccured = errorOccured
 
-      obj.sandboxGlobalContext.U = {query:(toParse)=>{
+      let U = {collection:(collectionName)=>{
+        return new class{
+          constructor(){
+            this.collectionName = collectionName
+            this.find = this.find.bind(this)
+            this.search = this.search.bind(this)
+            this.update = this.update.bind(this)
+            this.delete = this.delete.bind(this)
+            this.getQuery = this.getQuery.bind(this)
+          }
+    
+          getQuery(where,put,aditionalQuery){
+            if(!aditionalQuery) aditionalQuery = {}
+            return Object.assign({on:this.collectionName, where:where, put:put},aditionalQuery)
+          }
+    
+          find(where,aditionalQuery){
+            return U.query({ $find: this.getQuery(where,null,aditionalQuery)})
+          }
+    
+          
+          search(where,aditionalQuery){
+            return U.query({ $search: this.getQuery(where,null,aditionalQuery)})
+          }
+    
+          count(where,aditionalQuery){
+            return U.query({ $count: this.getQuery(where,null,aditionalQuery)})
+          }
+    
+          delete(where,aditionalQuery){
+            return U.query({ $delete: this.getQuery(where)})
+          }
+    
+          update(where,put,aditionalQuery){
+            return U.query({ $update: this.getQuery(where,put)})
+          }
+    
+          put(where,aditionalQuery){
+            return U.query({ $write: this.getQuery(null,put)})
+          }
+        }
+      },query:(toParse)=>{
 
         return new Promise(resolve=>{
           //how is code declared in action mode?
@@ -39,6 +80,8 @@ function executeJS(obj){
           })
         })
       }}
+
+      obj.sandboxGlobalContext.U = U
 
 
 
@@ -55,7 +98,7 @@ function executeJS(obj){
           return toLog
         }}
 
-        console.log('parsing started')
+     
         let functionToExecute = ${obj.code};
         const put = ${JSON.stringify(obj.put)};
         const field = ${JSON.stringify(obj.field)};
@@ -74,7 +117,7 @@ function executeJS(obj){
             valueToReturn = functionToExecute
         }
 
-        console.log(valueToReturn)
+     
 
         return done(valueToReturn)
         

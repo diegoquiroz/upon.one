@@ -135,7 +135,7 @@ div#headBar {
     column-gap: 40px;
     row-gap: 40px;
 }.app{
-    height: 400px;
+    height: auto;
     width: 100%;
     border-radius: 40px;
     background: #111;
@@ -156,7 +156,7 @@ div#headBar {
 }.app large {
     display: inline-block;
     width: 100%;
-    margin-top: 60px;
+    margin-top: 40px;
     font-family: roboto;
     padding: 40px 0;
     font-size: 60px;

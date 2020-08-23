@@ -1,17 +1,15 @@
 const db = require('./db.js')
 const cronWorker = require('./cronWorker.js')
 
-const {jwtKey, getUserData, hash,setNewVerificationCode,sendVerificationEmail, random} = require('./functions.js')
+const {generateJWT, getUserData, hash,setNewVerificationCode,sendVerificationEmail, random} = require('./functions.js')
 
 const handleParse = require('./handleParse.js')
 
-let jwt = require('jsonwebtoken');
-
-let CLIENT_ID = '140572074409-ijht2s8v0ldnotak190gbqi4gh8ci72e.apps.googleusercontent.com'
-const {OAuth2Client} = require('google-auth-library');
-const client = new OAuth2Client(CLIENT_ID);
 
 
+
+
+const fetch = require("node-fetch")
 
 
 function handlePost(req, res, processedCookieData,appName,giveConnection){
@@ -26,10 +24,7 @@ function handlePost(req, res, processedCookieData,appName,giveConnection){
   
     userDataForToken.appName = appName
 
-    const token = jwt.sign(userDataForToken, jwtKey, {
-      algorithm: "HS256",
-      expiresIn: '360 days',
-    })
+    const token = generateJWT(userDataForToken)
 
 
 
@@ -265,78 +260,6 @@ function handlePost(req, res, processedCookieData,appName,giveConnection){
       //get user data from cookie
       sendVerificationEmail( personData.email, qBody.context, (k)=>{  res.send(k) } )
 
-      break
-    case'getAucFromGoogleToken':
-      
-      let id_token = qBody.id_token
-      let genderAndBirthday = qBody.genderAndBirthday
-
-      let gender = 'male'
-      let birthday = null
-
-      if(genderAndBirthday.genders) if(genderAndBirthday.genders[0].value) gender = genderAndBirthday.genders[0].value
-      if(genderAndBirthday.birthdays){
-        let lastIndex =genderAndBirthday.birthdays.length -1
-        if(lastIndex >= 0){
-          birthday = genderAndBirthday.birthdays[lastIndex].date
-        }
-      }
-
-      console.log(birthday, gender)
-
-
-      async function verify() {
-        const ticket = await client.verifyIdToken({
-            idToken: id_token,
-            audience: CLIENT_ID,  // Specify the CLIENT_ID of the app that accesses the backend
-            // Or, if multiple clients access the backend:
-            //[CLIENT_ID_1, CLIENT_ID_2, CLIENT_ID_3]
-        });
-        const payload = ticket.getPayload();
-        const userid = payload['sub'];
-
-        createGoogleAccountOrLogin(userid,payload)
-
-        
-      }
-      
-      verify().catch(console.error);
-
-
-      function createGoogleAccountOrLogin(googleUserId,payload){
-
-
-        db.users.findOne({email: payload.email} , function(err, info){
-
-          if(info){
-            sendCookie(res,{name:info.name,username:info.username,id:info.id,email:info.email})
-          }else{
-            
-
-            var user_save = new db.users({
-              fullName:payload.name,
-              username:random(),
-              password:null,
-              email:payload.email,
-              birthday:birthday,
-              gender:gender,
-              googleId:googleUserId,
-              profile:payload.picture,
-              verified:true,
-              verificationCode:null
-            })
-  
-          user_save.save(error=>{
-            if(error,info){
-              if(error) return res.send({error:error.message})
-              sendCookie(res,{cookie:info.name, username:info.username, id:info.id, email:info.email})
-            }
-          })
-
-          }
-
-        })
-      }
       break
     case'loginOrSignup':
 
@@ -638,6 +561,8 @@ function handlePost(req, res, processedCookieData,appName,giveConnection){
       break
   }  
 }
+
+
 
 
 module.exports = handlePost

@@ -18,6 +18,8 @@ const handlePost = require('./handlePost.js')
 const puppeteer = require('puppeteer')
 const ssr = require('./ssr.js')
 
+const fetch = require("node-fetch")
+
 process.on('uncaughtException', function (err) {
   console.error(err.stack);
   console.log("Node NOT closing...");
@@ -33,6 +35,81 @@ const handleParse = require('./handleParse.js')
 const path = require('path');
 
 
+//-------------------------------Login with Google-----------------------
+let GoogleLoginSecret = '6qxJFE704wpJe2xvjxZ22NR3'
+let CLIENT_ID = '140572074409-ijht2s8v0ldnotak190gbqi4gh8ci72e.apps.googleusercontent.com'
+const {OAuth2Client} = require('google-auth-library');
+const client = new OAuth2Client(CLIENT_ID);
+
+
+async function getUserInfo(accessToken) {
+  const response = await fetch(
+    `https://www.googleapis.com/oauth2/v1/userinfo?access_token=${accessToken}`,
+    {
+      headers: {
+        Authorization: `Bearer ${accessToken}`
+      }
+    }
+  )
+  const json = await response.json()
+  return json
+}
+
+
+async function handleOAuth2(req, res) {
+
+  let state = JSON.parse(req.query.state)
+
+    const tokenResponse = await fetch(
+    `https://www.googleapis.com/oauth2/v4/token`,
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        code: req.query.code,
+        client_id: CLIENT_ID,
+        client_secret: GoogleLoginSecret,
+        redirect_uri: state.redirectUri,
+        grant_type: 'authorization_code'
+      })
+    }
+  )
+  const tokenJson = await tokenResponse.json()
+  const userInfo = await getUserInfo(tokenJson.access_token)
+
+  if(tokenJson.error){
+    throw(tokenJson)
+  }
+
+  if(userInfo.error){
+    throw(userInfo)
+  }
+
+  return {accessToken:tokenJson.access_token,userInfo:userInfo }
+ 
+  //res.redirect(`http://localhost:3000?${Object.keys(userInfo).map(key => `${key}=${encodeURIComponent(userInfo[key])}`).join('&')}`)
+}
+
+async function getUserInfo(accessToken) {
+  const response = await fetch(
+    `https://www.googleapis.com/oauth2/v1/userinfo?access_token=${accessToken}`,
+    {
+      headers: {
+        Authorization: `Bearer ${accessToken}`
+      }
+    }
+  )
+  const json = await response.json()
+  return json
+}
+
+
+async function getBirthdayNgender(token){
+  return await fetch('https://content-people.googleapis.com/v1/people/me?personFields=birthdays,genders&access_token='+token).then(data=>data.json())
+}
+
+
+
+//--------------------------------------------------------------------
 
 //liveDb
 //const liveDb = require('./liveDb.js') foucs on roastagram for now
@@ -43,7 +120,7 @@ const path = require('path');
 //app.ws('/room', connectToRoom )
 
 
-var {getSubdomain,jwtKey,getUserData, jwtKey}  = require('./functions.js');
+var {getSubdomain,jwtKey,getUserData, jwtKey, generateJWT}  = require('./functions.js');
 var jwt = require('jsonwebtoken');
 
 //cron
@@ -95,6 +172,7 @@ app.get('*', async (req, res) => {
   let reqCookie = req.cookies['user-cookie'] 
 
  
+  
 
   function sendJS(file_name){
     res.set('Content-Type','application/javascript')
@@ -123,6 +201,90 @@ app.get('*', async (req, res) => {
     res.cookie('user-cookie',req.query.auc,{expires: new Date(Date.now() + 9999999*99999) });
     res.redirect('http://'+req.get('host'))
     //also remove the question mark redirect
+  }else if(sub == 'auth' && req.query.state ){
+
+    let state = JSON.parse(req.query.state) 
+
+
+    let redirectURLToCheck = state.redirect.replace('http://','').replace('https://','')
+
+    let allowedRedirects = ['localhost:8080','auth.upon.one',]
+
+    if(redirectURLToCheck.indexOf('localhost:') !==0 && redirectURLToCheck !== state.appName+'.upon.one'){
+      res.send({error:'unauthorized redirect, go to Admin panel to add additional redirects by pressing CTRL + SHIFT + A'})
+    }
+    //check redirect permission
+
+    //google login
+    handleOAuth2(req, res).then(loginWithGoogle).catch(error=>{
+      res.send(error)
+    })
+
+    function sendToRightDestination(userdata){
+      userdata.appName = state.appName
+      let jwtCookie = generateJWT(userdata)
+      
+      res.redirect(state.redirect+`/?cookie=${jwtCookie}&devLogin=${state.devLogin}`)
+    }
+
+    async function loginWithGoogle(data){
+  
+        let payload = data.userInfo
+        let accessToken = data.accessToken
+
+        let genderAndBirthday = await getBirthdayNgender(accessToken)
+        
+        let gender = 'male'
+        let birthday = null
+    
+        if(genderAndBirthday.genders) if(genderAndBirthday.genders[0].value) gender = genderAndBirthday.genders[0].value
+        if(genderAndBirthday.birthdays){
+          let lastIndex =genderAndBirthday.birthdays.length -1
+          if(lastIndex >= 0){
+            birthday = genderAndBirthday.birthdays[lastIndex].date
+          }
+        }
+    
+      
+    
+  
+    
+          db.users.findOne({email: payload.email} , function(err, info){
+    
+            if(info){
+              sendToRightDestination({name:info.name,username:info.username,id:info.id,email:info.email})
+            }else{
+              
+    
+              var user_save = new db.users({
+                fullName:payload.name,
+                username:random(),
+                password:null,
+                email:payload.email,
+                birthday:birthday,
+                gender:gender,
+                googleId:googleUserId,
+                profile:payload.picture,
+                verified:true,
+                verificationCode:null
+              })
+    
+            user_save.save((error,info)=>{
+              
+                if(error) return res.send({error:error.message})
+                sendToRightDestination({name:info.name, username:info.username, id:info.id, email:info.email})
+
+            })
+    
+            }
+    
+          })
+        
+    
+    
+    }
+
+    
   }else if(sub == 'auth' && req.query.logout ){
     res.cookie('user-cookie','', { expires: 0 });
 
@@ -258,8 +420,11 @@ async function processCookie(req){
 
   let devCookie =req.body.devCookie || req.cookies['dev-cookie']//cookie for developers
 
+ 
+ 
   let userData = reqCookie? await getUserData(reqCookie,null,getSubdomain(req)) : null
   let devData = devCookie? await getUserData(devCookie,null,getSubdomain(req)) : null
+
 
   return {user:userData,developer:devData}
 } 
@@ -642,7 +807,7 @@ function sendFile(fileNameString,req,res){
 
             database.instance.collection(bucketName+'.files').findOne({filename:fileName},(error,infoMain)=>{
        
-              if(!infoMain) return res.send('file not found: ')
+              if(!infoMain) return res.send({error:'file not found'})
               
               res.set('Content-Type', infoMain.contentType)
               let readStream = gfs[bucketName].openDownloadStream(infoMain._id)

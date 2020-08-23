@@ -126,7 +126,7 @@ function searchApp(query){
         
         if(link.indexOf('http') !== -1) return link
         link = link.replace('./','').replace('../','')
-        if(link.substr(0,1) == '/') link.slice(1,link.length)
+        if(link.substr(0,1) == '/')link = link.slice(1,link.length)
         return U.getSubAppUrl(appName)+'/'+link
     }
 

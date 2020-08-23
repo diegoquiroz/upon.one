@@ -12,6 +12,12 @@ const cry = require('crypto')
 
 const db = require('./db.js')
 
+function generateJWT(userDataForToken){
+  return jwt.sign(userDataForToken, jwtKey, {
+    algorithm: "HS256",
+    expiresIn: '360 days',
+  })
+}
 
 function getUserData(value,searchBy,appName){
 
@@ -43,11 +49,11 @@ function getUserData(value,searchBy,appName){
        // }
         // otherwise, return a bad request error
         //return res.status(400).end()
+        console.log(e)
         resolve(null)
       }
     
 
-      
       if(payload.appName !== appName) return resolve(null)
 
       return resolve(payload)
@@ -221,4 +227,5 @@ module.exports = {
 	sendEmail: sendEmail,
 	sendVerificationEmail: sendVerificationEmail,
   jwtKey:jwtKey,
+  generateJWT:generateJWT
 }
