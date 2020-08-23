@@ -1,244 +1,118 @@
-* No API key needed
-* Not a single line of code needed to log user in
-* Server environment not Mandatory (except routing is needed)
+It is not an alternative to firebase.  Firebase is an amazing tool, and we love it, it is vast and easy. upon.one is an attempt to further simplify a few of its offerings <b> It is an alternative to API(s).</b>
 
+#What problems can upon.one solve?
+*Host without setting up a local server environment, it hosts your app by scraping its code and removing script tag with "dontHost" class
+*Login users with only one line of code ```U.login()```
+*Abstracts popular mongoose API to front-end with permission system that is very similar to firebase.
 
-Features: Auth, No-SQL DB, Real-time DB, Room, Payment, cron-job, indexing(so that content created with js can be crawled)
-
-<h3>Hosting</h3>
+#How to host?
 
 ```
-<script src="http://source.upon.one"></script><script class="private">
-one.deploy(uniqueAppName)
+<script  class='dontHost' src="http://source.upon.one"></script>
+<script class='dontHost'>
+	U.run(<App name>,options)
 </script>
+```
+Step1: Include the above code in the HTML file of the web app you want to host. 
+Step2: Save the file, and open the HTML file, the server environment is not necessary for this initial step.
+Step3: After opening, you will be asked to create an account, or sign in. This Account will be used to ensure no one else, can change your app's source code.
+Step4: On successful login, a message shall appear saying "Deploying", once it disappears, open inspect by f12 (key). It shall provide you the link to your hosted App.
+
+#How to host multiple files like sub-pages or App's logo?
 
 ```
+<script  class='dontHost' src="http://source.upon.one"></script>
+<script class='dontHost'>
+	U.staticFiles = ['about.html','favicon.ico']
+	U.run(<App name>,options)
+</script>
+```
+Step1: Stepup a server environment, recommended: VS code's Live Server extension 
+Step2: Add a line about U.run mentioning the files that need to be hosted
+Step3: You will be asked an online link to your MongoDB database. We recommend MongoDB atlas offering as it provides a built-in dynamic search in 500mb free. We use MongoDB GridFS to store binary files, it divides the file into chunks and saves it into the DB, you provided.
 
-Save it and run it as an HTML file from anywhere and your app will be hosted on “yourAppName”.upon.one
+#Login users.
+```U.login()```
 
-This library is designed in a way to make server side rendering obselete
+This is the only piece of code needed to log in users,  at this moment 2 options are provided login with Google and log in with Upon.one.
 
-<h3>Database</h3> (service comes with already integrated DB )
-
-Setting up DB (Chat app example)
- 
-notice values, required, default & unique (they do what they sound like)
+#How to check if a user has logged in?
 
 ```
+U.readUser('username')
+//returns a Promise
 
-
-	one.db['YourCollectionName'] = {
-
-		schema:{
-	  		chatHistory:Array,
-	  		chatId:'unique',
-	  		person1: {required:true,type:String, default:'$user.id'},
-	  		person2:{required:true,type:String},
-	  		notSeenBy:String
-	 		},
-	 	intermediates:{
-
-		  update:{
-		   $or:[ {$equal:['$user.id','$field.person1'] } , {$equal: ['$user.id','$field.person2'] } ]
-		  },
-
-		  read:{
-		   $or:[ {$equal:['$user.id','$field.person1'] } , {$equal: ['$user.id','$field.person2'] } ]
-		  }
-
-		 }
-		 
-	}
-
-
-// above code belongs to private script tag & above one.run
-
-
-```
-"Intermediates" will be processed every time a user tries to interact with the database (Update, Read or Write), the logic inside intermediate allows you to check permission and make additional query.
-
-
-<h3> Understanding the logic </h3> 
-
-In $field.person $field is a environment object containing all field which is to be updated our read
-
-Here $equal is a baked in function which takes an array as a parameter
-
-for example
-
-`$equal:['$field.writer','$user.id']`
-
-I call this logic Object Logic you can tinker with it inside objLogic.js
-
-Built in function list
-
-Equal, greaterThan, smallerThan, multiply, add, divide, substract, select, function, let, read, write, update
-
-Querying DB supports the same syntax. one.query(logic) for example
-
-```
-//for reading
-one.query({$read:{on:’messages’, where:{chatId:uniqueId} } },console.log)
-
-//for writing
-one.query({$write:{on:’messages’, put:{chatId:uniqueId, person2:'chaplin251'}}},console.log)
-
-//for update
-one.query({$update:{on:’messages’, where:{chatId:uniqueId}}},console.log)
-
-//even code
-one.query({$update:{on:’messages’, where:{chatId: {$add:[60,9]} }}},console.log)
+//if not logged in, null will be returned
 ```
 
-Example project: <a href="https://github.com/itsarnavsingh/rubbit">Rubbit</a>
-
-<h3> Live Database </h3> 
-
-To listen for changes to the database you just say one.liveDb(query) 
-
-query could be: {on:’messages’, where:{chatId:uniqueId} } 
-
-so whenever chat ’messages’ collection updates. you can listen for them through 
+#How to create a collection
 
 ```
-let aYoungObject = one.liveDb(query) 
-aYoungObject.on(‘data’, callback) 
-```
-you can also listen for error 
-aYoungObject.on(‘error’, errorCallback) 
-
-
-<h3> Room API </h3> 
-
-Suppose you want to make an online multiplayer game. Player needs to update their location on the network fast, In this case, writing and reading from a database is very time expensive. The industry standard way of dealing with it, is web sockets, what happens is unlike conventional TCP, Websocket connection doesn’t close (thus the name socket) and it is bi-directional so data can flow in both direction and it's really fast
-
-All chat systems rely on WebSockets.
-
-let’s say you want to make a Battle Royal game. we will the idea of the room, it is a network in which everyone can send data to everyone when a room full a new room is created.
-
-How to create a room
+  U.db['posts'] = {
+	schema:<mongoose like schema>},
+    	updatable:<when can a user update a document of this collection>,
+   	findable:<when can a user read from this collection>,
+    	writable:<when can a user write to this collection>
+  }
 
 ```
-let myRoom = one.room(name,capacity)
-```
+Default values for findable, updatable & writable is false just like Firebase.
+A javascript function is expected as input<br><br>
 
-The name could be anything, untill unless all members have it (by default capacity is 2)
-
-To receive data
-
+For example 
 ```
-let myRoom = one.room(name,capacity)
-myRoom.on('data',callaback)
+updatable:function(){ user.username == 'pinkyPony'? true : false }
+//Now only pinkyPony can update the corresponding collection
 ```
+upon.one applies toString() method on the given function and stores it, whenever a user tries to update this collection code is initialized into a virtual sandboxed environment where it is executed
 
-similarly you can check for creation of room
-```
-myRoom.on('open',callaback)
-```
+user is a serverside variable, only available when a user is logged in
+Fields inside user variable: username, name & id 
 
-set callback for when members join and leave
-```
-myRoom.on('join',callaback)
+Default attribute inside schema also supports, function
+You can specify updatable, findable & writable, attribute to specific fields as well, default values for them are true
+You will be asked link to MongoDB instance if not already provided
 
-myRoom.on('leave',callaback)
+#How to query Database?
+It is also mongoose like
 ```
-
-How to send data to all other members
-
+U.collection('collectionName').find(<where query>,<options>)
+//returns a Promise
 ```
-myRoom.broadcast('player position or anything')
-```
+Methods available: find, delete, update, write
 
-How to change room
+#complete Example of a To-Do App
 
 ```
-myRoom.change('the new rooms name')
-```
-There is a list of things we didn’t cover, please leave a note on what you are interested
+    <script class="dontHost" src="http://source.upon.one"></script>
+    <script class="dontHost">
 
-    payment api + fees api
-    prompt api
-    cron job
-    notification + like + follow apis
-    Or a new feature? right?
-   
-   
-<h3>CMS</h3> 
- By pressing Ctrl + Alt + A Admin pannel can be engaged, It provides CMS and Statistics Of all your apps
-    
-<h3>Best Practises</h3> 
-	* Javascript should not affect HTML before deployment otherwise processed HTML will be deployed
-	  one.onReady = callback provides this facility, Obsiously It must be declared outside backend script tag
-	* Script tag containing DB schema and simmilar sensitive configation must be attributed with 'backend' class
-	
-<h3>Precautions</h3> 
-* Never put one.run outside of a serverside class if file is being hosted otherwise when the hosted application will be run then file will keep on reloading source code but there is a precautionary measure implemented in the code. putting one.run outside of a script attributed with a serverside class is allowed if file is not being hosted like if you are developing a chrome extension where there is no need of hosting
+        let defaulValue_commitmentOf = ()=>{return user.id}
 
-<h3>FAQ</h3> 	
-	* How is ownership decided?
-	ANS: When making first deployment, the user id used is assigned as the owner
-	
-<h3>Side Tips</h3>
-	* Always use breakpoint to inspect your code, It should be the first action to take even in cases where hit and trial method seems practical.
-
-<h3>Email: arnav010singh@gmail.com </h3> 
-
-
-<h3>Setting up repo in local environment</h3>
-
-* Create .env file (by default windows saves .env as env.txt you have to choose no extension in extension list)
-* Go to c:\windows\system32\drivers\etc\hosts change localhost to localhost.com because shared cookies can't be set on domanins without extension, line starting with # are comments, add the line: 
-
-```
-127.0.0.1    localhost.com
-
-127.0.0.1    subdomainYouWantToWorkOn.localhost.com 
-````
-
-everytime you have to test a new subdomain locally you will have to add that subdomain to the host file as windows host file does not supports wildcard subdomain
-
-#development
-
-nodemon offers inspect but it is not able to exclude node js internal parts
-
-Instead, use node js debug, for that launch.json is setup. this way you can add breakpoint from within vscode. click on setup configuration in the debug tab in vscode.
-
-from now on vscode will handle starting the server and debuging. It is better than nodemon --inspect
-but it has a problem server won't restart on making changes to the server
-for that add following config to launch.json inside .vscode folder
-
-{
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
-    "version": "0.2.0",
-    "configurations": [
-        {
-            "type": "node",
-            "request": "launch",
-            "name": "Launch Program",
-            "skipFiles": [
-                "<node_internals>/**"
-            ],
-            "program": "${workspaceFolder}\\index.js",
-            "runtimeExecutable": "nodemon",
-            "restart": true,
-            "console": "integratedTerminal",
-            "internalConsoleOptions": "neverOpen"
+        let todoSchema = {
+            whatToDo: {type:String, required:true},
+            commitmentOf:{default:defaulValue_commitmentOf, type:String }
         }
-    ]
-}
 
-but note, for this you need nodemon installed globally for this to work
+        function rule(){
+            user.id == field.todoOf? true : false
+        }
 
-note you will have to read error in terminal, dubug console is secondary
+        U.db['toDo'] = {
 
-you can't run child process with fork while with nodemon that was the reason behind
-switching to vscode debugger
+            schema:todoSchema,
+            writable:true,
+            updatable:rule,
+            findable:rule
+        }
 
+        U.run('notToDO')
 
+    </script>
+```
 
-#Indexing
+#Priciple behind the choices of UPON.ONE
 
-Wildcard Indexes are the new cool feature in MongoDB, which allows you to index
-unpredictable data, https://www.youtube.com/watch?v=mUWZPdHopYs
+* Firestore is schema-less, it makes firebase flexible but also introduces new problems, For creating a new Field you have to set up a cloud function. 
+* Vendor Lock-in is not awesome, where your MongoDB instance lives is up to you.
+* As app scales, expense increases and migration becomes more challenging. In the case of UPON.ONE all the data lives in MongoDB so you don't need to do any migration if at any time you decide to ditch us. upon.one is open source so if your app becomes too big you can just spin your instance of UPON.ONE

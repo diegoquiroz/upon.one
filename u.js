@@ -142,7 +142,7 @@ let U = new class{
 
 
         console.log('deploying...')
-        U.deploying = U.say('deploying...')
+        U.deploying = U.say('Deploying...')
 
               this.configuration.logo = null 
               this.configuration.description = null 
