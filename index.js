@@ -425,7 +425,7 @@ async function processCookie(req){
   let userData = reqCookie? await getUserData(reqCookie,null,getSubdomain(req)) : null
   let devData = devCookie? await getUserData(devCookie,null,getSubdomain(req)) : null
 
-  console.log(reqCookie, userData)
+  
   return {user:userData,developer:devData}
 } 
 

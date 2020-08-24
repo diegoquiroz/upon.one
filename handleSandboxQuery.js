@@ -361,7 +361,7 @@ function handleQuery(type,par,via,parentRange,prop,handleParse){
                     let limit = 10
                     if(par.limit) limit = par.limit
 
-                    if(!par.field) throw Error('field is mandatory for $search, use array for multiple field, string for indivisual field')
+                    if(!par.fields) throw Error( ' "fields" argument is mandatory for $search, use array for multiple field, string for indivisual field')
 
 
                     collection.aggregate([

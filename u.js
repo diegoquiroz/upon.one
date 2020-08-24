@@ -160,7 +160,13 @@ let U = new class{
 
               this.post({data:this.configuration,type:'host'},async (data)=>{
                   
-                if (data.error) if (data.error) return U.deploying.update(data.error)//error occured
+                if (data.error){
+                  if(data.error == 'dev not logged in'){
+                    U.deploying.kill()
+                    return U.login('DEVELOPER').then(uploadSource)
+                  } 
+                  if(data.error) return U.deploying.update(data.error)//error occured
+                } 
                     
                   let port = this.info.port
 

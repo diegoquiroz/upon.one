@@ -25,7 +25,7 @@ Step4: On successful login, a message shall appear saying "Deploying", once it d
 
 ## options
 
-host: true | false //default of true
+host: true | false //default is true
 
 # How to host multiple files like sub-pages or App's logo?
 
@@ -104,10 +104,10 @@ note: all collection methods return promise
 
 | Methods | Description |
 | --- | --- |
-| `find(whereQuery,{sort:{fieldA:'descending'}, limit:10 })` | finds documents |
-| `update(whereQuery,putQuery)` | similar to mongoose updateOne, updates the first document that matches where query |
-| `delete(whereQuery)` | deletes the first document that matches the whereQuery |
-| `search(whereQuery, { fields:[fieldA,fieldB] } )` | searches documents based on atlas-search, read more about it here: https://docs.atlas.mongodb.com/atlas-search/ ,you need to enable this feature from the search indexes tab in Atlas |
+| `find(whereQuery,options)` | Finds documents, options example: {sort:{fieldA:'descending'}, limit:10 } |
+| `update(whereQuery,putQuery)` | Similar to mongoose updateOne, updates the first document that matches where query |
+| `delete(whereQuery)` | Deletes the first document that matches the whereQuery |
+| `search(whereQuery, { fields:[fieldA,fieldB] } )` | Searches documents based on atlas-search, read more about it here: https://docs.atlas.mongodb.com/atlas-search/ ,you need to enable this feature from the search indexes tab in Atlas |
 
 # How to implement a payment system or a Machine Learning integration
 
@@ -153,6 +153,11 @@ Step3: to run the declared function execute the following code
  //returns promise
 
 ```
+
+Note: There is a problem with these cloud functions, you can't add break points. You can console.log, it
+will appear in the Admin Panel which can be opened by using CTRL + SHIFT + A & you can't install NPM libraries.
+It is intended for simple use cases. For complex use cases use of third party serverless platform like AWS Lamda or Google Cloud Functions 
+
 # complete Example of a To-Do App
 
 ```

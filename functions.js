@@ -53,7 +53,7 @@ function getUserData(value,searchBy,appName){
         resolve(null)
       }
     
-      console.log(payload)
+     
       if(payload.appName !== appName) return resolve(null)
 
       return resolve(payload)

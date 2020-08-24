@@ -20,7 +20,7 @@ function executeJS(obj){
       }
 
     
-      obj,sandboxGlobalContext.fetch = fetch
+      obj.sandboxGlobalContext.fetch = fetch
       obj.sandboxGlobalContext.done = done
       obj.sandboxGlobalContext.errorOccured = errorOccured
 
