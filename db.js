@@ -85,7 +85,7 @@ let law = new mongoose.Schema({
   quaterly:String,
   yearly:String,
   monthly:String,
-  backendFunctions:String,
+  cloudFunctions:String,
   dbLink:String,
 })
 

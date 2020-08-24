@@ -6,11 +6,13 @@ mongoose.set('useFindAndModify', false);
 mongoose.set('useCreateIndex', true);
 mongoose.set('useUnifiedTopology', true)
 
+if(!process.env.PORT) require('dotenv').config();
+
 //connect-vs-createconnection
 //My understanding on the official documentation is that generally when there is only one connection mongoose.connect() is use, whereas if there is multiple instance of connection mongoose.createConnection() is used.
 
 
-let mainMongooseInstance = mongoose.createConnection('mongodb+srv://itsarnav:Alliswell@010@cluster0-zijxk.mongodb.net/test?retryWrites=true',
+let mainMongooseInstance = mongoose.createConnection(process.env.mongoLink,
  {
     useNewUrlParser: true ,
     useUnifiedTopology:true,

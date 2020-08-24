@@ -75,11 +75,11 @@ function handleParse(passedProp,overwrite){
         if (err)  return prop.failure({error:err})
         if (!info_main) return prop.failure({error: prop.appName+'database schema not found found: ' , code:1211 })
 
-        prop.backendFunctions = {}
+        prop.cloudFunctions = {}
         prop.database = {}
 
         try{
-          if(info_main.backendFunctions) prop.backendFunctions = JSON.parse(info_main.backendFunctions)
+          if(info_main.cloudFunctions) prop.cloudFunctions = JSON.parse(info_main.cloudFunctions)
           if(info_main.DBs) prop.database = JSON.parse(info_main.DBs)
         }catch(err){
 
@@ -158,7 +158,7 @@ function handleParse(passedProp,overwrite){
 
                 async run(argumentArray){
                   let functionName = argumentArray[0]
-                  let functionCodeInString = prop.backendFunctions[functionName]
+                  let functionCodeInString = prop.cloudFunctions[functionName]
                   let functionParam = argumentArray[1]
                   if(!functionCodeInString) throw Error('function not found')
 

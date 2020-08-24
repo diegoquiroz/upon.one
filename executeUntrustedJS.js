@@ -5,7 +5,7 @@ let sandbox = {executeJS:executeJS}
 let cumminicator = new processComunicator(sandbox,console.log,process)
 
 
-
+const fetch = require("node-fetch")
 
 
 function executeJS(obj){
@@ -20,7 +20,7 @@ function executeJS(obj){
       }
 
     
-
+      obj,sandboxGlobalContext.fetch = fetch
       obj.sandboxGlobalContext.done = done
       obj.sandboxGlobalContext.errorOccured = errorOccured
 
@@ -61,7 +61,7 @@ function executeJS(obj){
             return U.query({ $update: this.getQuery(where,put)})
           }
     
-          put(where,aditionalQuery){
+          write(put,aditionalQuery){
             return U.query({ $write: this.getQuery(null,put)})
           }
         }
@@ -107,7 +107,7 @@ function executeJS(obj){
         let valueToReturn = null
         if(typeof functionToExecute == 'function'){
           try{
-            valueToReturn = await functionToExecute(${obj.argument})
+            valueToReturn = await functionToExecute(${obj.arg})
           }catch(error){
             if(error.message) return errorOccured(error.message)
             return errorOccured(error)

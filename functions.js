@@ -6,7 +6,7 @@ sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 
 
-const jwtKey = "wolf_smiles_at_moon@cool#night"
+const jwtKey = process.env.jwtKey
 
 const cry = require('crypto')
 
@@ -53,7 +53,7 @@ function getUserData(value,searchBy,appName){
         resolve(null)
       }
     
-
+      console.log(payload)
       if(payload.appName !== appName) return resolve(null)
 
       return resolve(payload)

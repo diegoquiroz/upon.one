@@ -5,7 +5,7 @@ let U = new class{
     this.configuration={ cron:{daily:[],weekly:[],monthly:[],quaterly:[],yearly:[]}, fees:{} }
     this.files = {}
     this.db = {}
-    this.backendFunctions = {}
+    this.cloudFunctions = {}
 
     this.bucket = {}//for image upload
 
@@ -43,6 +43,8 @@ let U = new class{
       }
 
     //----------------------------------------------------------------------------------------
+  }runCloudFunction(functionName,arg){
+   return U.query({ $run: [functionName,arg] })
   }collection(collectionName){
     return new class{
       constructor(){
@@ -80,9 +82,10 @@ let U = new class{
         return U.query({ $update: this.getQuery(where,put)})
       }
 
-      put(where,aditionalQuery){
+      write(put,aditionalQuery){
         return U.query({ $write: this.getQuery(null,put)})
       }
+
     }
   }uploadStaticFiles(staticFiles){
     //fetch
@@ -100,9 +103,9 @@ let U = new class{
     prepSourceExtraction = prepSourceExtraction.bind(this)
     uploadSource = uploadSource.bind(this)
 
-    configuration.name = appName.toLowerCase()
+    if(!configuration) configuration = {}
     Object.assign(this.configuration,configuration) //transfer all variables of arg 1 into this.configuration
-
+    U.configuration.name = appName.toLowerCase()
 
 
 
@@ -197,11 +200,11 @@ let U = new class{
 
         
         this.configuration.db = this.db
-        this.configuration.backendFunctions = this.backendFunctions
+        this.configuration.cloudFunctions = this.cloudFunctions
         this.configuration.bucket = this.bucket
 
-        for(let key in this.backendFunctions){
-          this.backendFunctions[key] = this.backendFunctions[key].toString()
+        for(let key in this.cloudFunctions){
+          this.cloudFunctions[key] = this.cloudFunctions[key].toString()
         }
 
         function transformTypes(obj){
@@ -354,7 +357,7 @@ let U = new class{
       }
 
       let elements = [
-        {h3:'Go to atlas.mongodb.com and get a create a database with them & give us the link'},
+        {h3:'Go to <a target="_blank" href="http://atlas.mongodb.com">http://atlas.mongodb.com</a>, create a database with them & give us the link'},
         {input:{placeholder:'database link',name:'dbLink'}},
         {button:{onclick:submitDbLink,innerHTML:'Submit Link'}},
         {button:{onclick:()=>{ asked.kill()},innerHTML:'Maybe tomorrow'}}
@@ -376,9 +379,10 @@ let U = new class{
         return await U.query(query,adminMode)
       }else if(apiData.data.error == 'dbLink not found' && !adminMode){
 
-        let error = await U.changeDbLink()
-        if(!error){
-          return await U.query(query,adminMode)
+        let dbLinkChanged = await U.changeDbLink()
+        if(!dbLinkChanged.error){
+
+          return await U.query(query)
         }
 
       }
@@ -1572,8 +1576,11 @@ let U = new class{
         
         //if someone tampers with localStorage 
         U.query('$user').then(function(whole){
-
-          if(typeof whole === 'undefiend') return U.logout()
+          
+          if(!whole){
+            console.warn(' cookie invalid')
+            return resolve()
+          } 
 
           if (whole.error) return U.handleError(whole)//we dont send data
 

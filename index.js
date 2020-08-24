@@ -208,10 +208,10 @@ app.get('*', async (req, res) => {
 
     let redirectURLToCheck = state.redirect.replace('http://','').replace('https://','')
 
-    let allowedRedirects = ['localhost:8080','auth.upon.one',]
-
-    if(redirectURLToCheck.indexOf('localhost:') !==0 && redirectURLToCheck !== state.appName+'.upon.one'){
-      res.send({error:'unauthorized redirect, go to Admin panel to add additional redirects by pressing CTRL + SHIFT + A'})
+ 
+  
+    if(redirectURLToCheck.indexOf('127.0.0.1:') !==0 && redirectURLToCheck.indexOf('localhost:') !==0 && redirectURLToCheck !== state.appName+'.upon.one'){
+      return res.send({error:state.redirect+' is unauthorized, go to Admin panel to add additional redirects by pressing CTRL + SHIFT + A'})
     }
     //check redirect permission
 
@@ -425,7 +425,7 @@ async function processCookie(req){
   let userData = reqCookie? await getUserData(reqCookie,null,getSubdomain(req)) : null
   let devData = devCookie? await getUserData(devCookie,null,getSubdomain(req)) : null
 
-
+  console.log(reqCookie, userData)
   return {user:userData,developer:devData}
 } 
 

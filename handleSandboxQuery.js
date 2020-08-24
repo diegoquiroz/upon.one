@@ -369,7 +369,7 @@ function handleQuery(type,par,via,parentRange,prop,handleParse){
                         {$search: {
                           "text": {
                             "query": par.where,
-                            "path": par.field
+                            "path": par.fields
                           }
                         }},
                         { "$limit": limit },

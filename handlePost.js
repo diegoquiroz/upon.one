@@ -408,7 +408,7 @@ function handlePost(req, res, processedCookieData,appName,giveConnection){
 
       qBody.db = JSON.stringify(qBody.db)
       qBody.bucket = JSON.stringify(qBody.bucket)
-      qBody.backendFunctions = JSON.stringify(qBody.backendFunctions)
+      qBody.cloudFunctions = JSON.stringify(qBody.cloudFunctions)
 
       if (!qBody.meta) qBody.meta = null
 
@@ -447,7 +447,7 @@ function handlePost(req, res, processedCookieData,appName,giveConnection){
         db.law.findOne({ app:qBody.name }).then(rulesFound=>{
 
           function updateDB(){
-            db.law.findOneAndUpdate({ app:qBody.name }, Object.assign({DBs:qBody.db, bucket:qBody.bucket, backendFunctions: qBody.backendFunctions }, tasksPutValues) ,{new: true,runValidators: true },(updateErr,doc)=>{
+            db.law.findOneAndUpdate({ app:qBody.name }, Object.assign({DBs:qBody.db, bucket:qBody.bucket, cloudFunctions: qBody.cloudFunctions }, tasksPutValues) ,{new: true,runValidators: true },(updateErr,doc)=>{
              if(updateErr) console.log(updateErr)
               callback({code:200})
            })
@@ -462,7 +462,7 @@ function handlePost(req, res, processedCookieData,appName,giveConnection){
               app:  qBody.name,
               DBs: qBody.db,
               bucket: qBody.bucket,
-              backendFunctions: qBody.backendFunctions 
+              cloudFunctions: qBody.cloudFunctions 
             },tasksPutValues) )
 
             rule_save.save(error=>{
