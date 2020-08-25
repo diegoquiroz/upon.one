@@ -511,8 +511,8 @@ function getSchema(collectionSchema,collection){
 
 
 
-function giveConnection(appName,success,failure){
-  if(dbConnectionsOfApps[appName]) return success(dbConnectionsOfApps[appName])
+function giveConnection(appName,success,failure,forceNewConnection){
+  if(!forceNewConnection && dbConnectionsOfApps[appName]) return success(dbConnectionsOfApps[appName])
   let callbackSent = false
 
   function sendCallback(data,isSuccess){
@@ -757,6 +757,8 @@ function uploadMiddleWare(req, file){
 
 function sendFile(fileNameString,req,res){
 
+  if(fileNameString.indexOf('.websocket') !== -1) return
+
     let bucketName 
     let appName = getSubdomain(req)
 
@@ -806,7 +808,8 @@ function sendFile(fileNameString,req,res){
 
 
             database.instance.collection(bucketName+'.files').findOne({filename:fileName},(error,infoMain)=>{
-       
+              
+             
               if(!infoMain) return res.send({error:'file not found'})
               
               res.set('Content-Type', infoMain.contentType)
@@ -814,10 +817,6 @@ function sendFile(fileNameString,req,res){
               readStream.pipe(res)
             })
               
-     
-        
-
-
 
         }
 

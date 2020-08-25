@@ -492,7 +492,12 @@ function handlePost(req, res, processedCookieData,appName,giveConnection){
 
        saveDB(()=>{
 
-            res.send({code:200})
+        function success(){
+          res.send({code:200})
+        }
+
+        giveConnection(qBody.name,success,success,true)
+            
 
        }); 
 

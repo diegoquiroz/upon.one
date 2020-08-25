@@ -23,7 +23,7 @@ function handleQuery(type,par,via,parentRange,prop,handleParse){
 
               let collection = prop.db.collections[par.on]
 
-              
+              if(!collection) return resolveOutput({error:'db connection has not yet updated according to the new connection'})
 
               if ( (type == 'update' || type == 'find') && !par.where)  par.where = {}
               if (type === 'write' && par.where) return resolveOutput({error:"where not a recognized under $write"})

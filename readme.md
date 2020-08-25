@@ -18,9 +18,12 @@ It is not an alternative to Firebase.  Firebase is an amazing tool, we all love 
 	U.run(<App name>,options)
 </script>
 ```
-Step1: Include the above code in the HTML file of the web app you want to host. <br>
+Step1: Include the above code in the HTML file after the body tag of the web app you want to host. <br>
 Step2: Save the file, and open the HTML file, the server environment is not necessary for this initial step.<br>
-Step3: After opening, you will be asked to create an account, or sign in. This Account will be used to ensure no one else, can change your app's source code.<br>
+Step3: After opening, you will be asked to create an account, or sign in. This Account will be used to ensure no one else, can change your app's source code<br>
+
+Note: You will have to use login with upon.one in file://protocol, Google login will not work with file:// protocol, 
+
 Step4: On successful login, a message shall appear saying "Deploying", once it disappears, open inspect by f12 (key). It shall provide you the link to your hosted App.<br>
 
 ## options
@@ -39,6 +42,8 @@ host: true | false //default is true
 Step1: Stepup a server environment, recommended: VS code's Live Server extension 
 Step2: Add a line about U.run mentioning the files that need to be hosted
 Step3: You will be asked an online link to your MongoDB database. We recommend MongoDB atlas offering as it provides a built-in dynamic search in 500mb free. We use MongoDB GridFS to store binary files, it divides the file into chunks and saves it into the DB, you provided.
+
+Note: After creating a db in Atlas go to "Network access" in the left panel, select "add IP Address" & then select "Access from Anywhere" 
 
 # Login users.
 ```U.login()```
