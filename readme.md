@@ -41,7 +41,9 @@ host: true | false //default is true
 ```
 Step1: Stepup a server environment, recommended: VS code's Live Server extension 
 Step2: Add a line about U.run mentioning the files that need to be hosted
-Step3: You will be asked an online link to your MongoDB database. We recommend MongoDB atlas offering as it provides a built-in dynamic search in 500mb free. We use MongoDB GridFS to store binary files, it divides the file into chunks and saves it into the DB, you provided.
+Step3: You will be asked an online link to your MongoDB database. We recommend MongoDB atlas offering as it provides a built-in dynamic search in 500mb free. We use MongoDB GridFS to store binary files, it divides the file into chunks and saves it into the DB, you provided
+Step4: Create a cluster on Atlas
+Step5: 
 
 Note: After creating a db in Atlas go to "Network access" in the left panel, select "add IP Address" & then select "Access from Anywhere" 
 
@@ -109,10 +111,11 @@ note: all collection methods return promise
 
 | Methods | Description |
 | --- | --- |
-| `find(whereQuery,options)` | Finds documents, options example: {sort:{fieldA:'descending'}, limit:10 } |
-| `update(whereQuery,putQuery)` | Similar to mongoose updateOne, updates the first document that matches where query |
-| `delete(whereQuery)` | Deletes the first document that matches the whereQuery |
-| `search(whereQuery, { fields:[fieldA,fieldB] } )` | Searches documents based on atlas-search, read more about it here: https://docs.atlas.mongodb.com/atlas-search/ ,you need to enable this feature from the search indexes tab in Atlas |
+| `write(object)` | Adds document to collection|
+| `find(object,options)` | Finds documents, options example: {sort:{fieldA:'descending'}, limit:10 } |
+| `update(object,object)` | Similar to mongoose updateOne, updates the first document that matches where query |
+| `delete(object)` | Deletes the first document that matches the object |
+| `search(object, { fields:[fieldA,fieldB] } )` | Searches documents based on atlas-search, read more about it here: https://docs.atlas.mongodb.com/atlas-search/ ,you need to enable this feature from the search indexes tab in Atlas |
 
 # How to implement a payment system or a Machine Learning integration
 
