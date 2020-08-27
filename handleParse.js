@@ -102,16 +102,16 @@ function handleParse(passedProp,overwrite){
         if(!prop.appOwnerId){
           db.apps.findOne({name:prop.appName},function(err, info_main){
             if(!info_main) return prop.failure({error:'app not found: '+prop.appName})
+           
+            if(!info_main.owner) return prop.failure({error:'owner undefined'})
             prop.appOwnerId = info_main.owner
             doParse()
           })
           return 
         }
 
-       
         if(!prop.db) return prop.giveConnection(prop.appName,data=>{
           prop.db = data
-          
           doParse()
         },prop.failure)
   

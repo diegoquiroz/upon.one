@@ -26,9 +26,15 @@ Note: You will have to use login with upon.one in file://protocol, Google login 
 
 Step4: On successful login, a message shall appear saying "Deploying", once it disappears, open inspect by f12 (key). It shall provide you the link to your hosted App.<br>
 
-## options
 
-host: true | false //default is true
+
+# options
+
+| options  | Description |
+| --- | --- |
+| `host` | true | false //default is true|
+| `searchable` | true | false //default is false, if false app won't appear on UPON.ONE home page|
+
 
 # How to host multiple files like sub-pages or App's logo?
 
@@ -43,7 +49,9 @@ Step1: Stepup a server environment, recommended: VS code's Live Server extension
 Step2: Add a line about U.run mentioning the files that need to be hosted
 Step3: You will be asked an online link to your MongoDB database. We recommend MongoDB atlas offering as it provides a built-in dynamic search in 500mb free. We use MongoDB GridFS to store binary files, it divides the file into chunks and saves it into the DB, you provided
 Step4: Create a cluster on Atlas
-Step5: 
+Step5: create a db
+step6: create a database and user
+Step7: provide the db link to your app
 
 Note: After creating a db in Atlas go to "Network access" in the left panel, select "add IP Address" & then select "Access from Anywhere" 
 
@@ -95,7 +103,7 @@ user variable has following fields: username, name & id
 | `put` | Available in case of update and write|
 | `field` | available in case of read and update, field is an object that refers to the object which is requested to be read or updated|
 | `user` | Always available when user is logged in|
-
+ 
 * Default attribute inside schema also supports, function
 * You can specify updatable, findable & writable, attribute to specific fields as well, default values for them are true
 * You will be asked link to MongoDB instance if not already provided

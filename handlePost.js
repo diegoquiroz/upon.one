@@ -28,6 +28,7 @@ function handlePost(req, res, processedCookieData,appName,giveConnection){
 
 
 
+
     if(!qBody.devLogin) res.cookie('user-cookie',token,{ expires: new Date(Date.now() + 9999999*99999) });
 
   
@@ -235,7 +236,7 @@ function handlePost(req, res, processedCookieData,appName,giveConnection){
 
             //shound we make verification mandatory for cookies to be assigned
             
-            sendCookie(res,{name:userToVerify.name, username:userToVerify.username, id:userToVerify.username.id, email:userToVerify.username.email}) //in case of otp breach session can be breached but it doesn't matters as it can do any thing due to localstorage it is already in secure and cookies can be stolen
+            sendCookie(res,{name:userToVerify.name, username:userToVerify.username, id:userToVerify.id, email:userToVerify.username.email}) //in case of otp breach session can be breached but it doesn't matters as it can do any thing due to localstorage it is already in secure and cookies can be stolen
             let code = setNewVerificationCode(userToVerify.email)//change verification code one it is used
             // type === 'otp'? res.send({msg:'account verified'}) : 
         }
@@ -401,6 +402,8 @@ function handlePost(req, res, processedCookieData,appName,giveConnection){
       }
 
       if(!developerData) return  failed('dev not logged in')
+      if(!developerData.id) return  failed('invalid cookie')
+      console.log(developerData)
 
       if (!qBody.description) qBody.description = null //take from meta tag to dp
       if (!qBody.preCode) qBody.preCode = null

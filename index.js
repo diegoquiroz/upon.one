@@ -415,17 +415,19 @@ app.post('/upload', function (req, res) {
 
 
 async function processCookie(req){
+
+  
     
   let reqCookie = req.body.cookie || req.cookies['user-cookie']
 
   let devCookie =req.body.devCookie || req.cookies['dev-cookie']//cookie for developers
 
  
- 
+
   let userData = reqCookie? await getUserData(reqCookie,null,getSubdomain(req)) : null
   let devData = devCookie? await getUserData(devCookie,null,getSubdomain(req)) : null
 
-  
+
   return {user:userData,developer:devData}
 } 
 
@@ -439,6 +441,7 @@ app.post('/',(req, res) =>{
   processCookie(req).then(data=>{
 
     try{
+      
       handlePost(req, res, data, getSubdomain(req),giveConnection)
     }catch(error){
       console.log('controlled handle post error',error)
