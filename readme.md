@@ -88,6 +88,14 @@ upon.one applies toString() method on the given function and stores it, whenever
 user is a serverside variable, only available when a user is logged in
 user variable has following fields: username, name & id 
 
+
+
+| Serverside variables  | Description |
+| --- | --- |
+| `put` | Available in case of update and write|
+| `field` | available in case of read and update, field is an object that refers to the object which is requested to be read or updated|
+| `user` | Always available when user is logged in|
+
 * Default attribute inside schema also supports, function
 * You can specify updatable, findable & writable, attribute to specific fields as well, default values for them are true
 * You will be asked link to MongoDB instance if not already provided
@@ -162,11 +170,54 @@ Step3: to run the declared function execute the following code
 
 ```
 
+Note: function executes like above will not need to go through fidable, readable & writable functions
+
 Note: There is a problem with these cloud functions, you can't add break points. You can console.log, it
 will appear in the Admin Panel which can be opened by using CTRL + SHIFT + A & you can't install NPM libraries.
 It is intended for simple use cases. For complex use cases use of third party serverless platform like AWS Lamda or Google Cloud Functions 
 
-# complete Example of a To-Do App
+# How to compress & upload images?
+
+```
+  U.bucket['profileImages'] = {
+    updatable:true,
+    findable:true,
+    writable:true
+  }
+
+```
+Step1: Add above code before U.run, it defines who can read, write and update content of bucket
+Step2: Call ``` U.upload(file,bucketName) ``` example is below
+
+```
+    async upload(event){
+
+      let file = event.target.files[0]
+      let compressedFile = await U.compressImage(file,{maxSizeMB:0.5})
+      let image = await U.upload(compressedFile,'profileImages',this.pageData.DPlink)
+      await U.query({ $update: {on:'pages', where:{ title: this.title }, put:{DPlink:image.url} } })
+      this.refresh()
+      
+    }
+
+```
+
+Understanding options U.compressImage(file,options)
+
+```
+options = {
+      maxSizeMB: 0.5,             // (default: Number.POSITIVE_INFINITY)
+      maxWidthOrHeight: number,   // compressedFile will scale down by ratio to a point that width or height is smaller than maxWidthOrHeight (default: undefined)
+      useWebWorker: true,         // optional, use multi-thread web worker, fallback to run in main-thread (default: true)
+      maxIteration: number,       // optional, max number of iteration to compress the image (default: 10)
+      exifOrientation: number,    // optional, see https://stackoverflow.com/a/32490603/10395024
+      onProgress: Function,       // optional, a function takes one progress argument (percentage from 0 to 100) 
+      fileType: 'jpeg'            // optional, fileType override
+    }
+
+```
+
+# Complete example of a To-Do App
 
 ```
     <script class="dontHost" src="http://source.upon.one"></script>

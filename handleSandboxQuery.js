@@ -194,6 +194,7 @@ function handleQuery(type,par,via,parentRange,prop,handleParse){
                     let defaultValue = fieldsWithAttribute.default[field]
                     //the default value could also we a function
                     query[field] = await handleParse(prop, { via:'action', parse:defaultValue, put:par.put, failure: (data)=>{ errorOccured(data.error,'Error when setting default value') }})
+                    console.log(query[field],query)
                   }
 
                 }
@@ -218,8 +219,8 @@ function handleQuery(type,par,via,parentRange,prop,handleParse){
                      
                       var vr_schema = new collection(par.put)
                       vr_schema.save((error,writenObj)=>{
-
-                        if (error) return resolveOutput({error:{code:error.code,message: error.message} })
+                      
+                        if (error) return resolveOutput({error:error.message })
 
                         return resolve(writenObj)
 

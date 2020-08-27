@@ -380,10 +380,7 @@ let U = new class{
 
     if(apiData.data){
     
-      if(apiData.data.error == 'Login required' || apiData.data.error == 'undefined: user'){
-        await U.login()
-        return await U.query(query,adminMode)
-      }else if(apiData.data.error == 'dbLink not found' && !adminMode){
+      if(apiData.data.error == 'dbLink not found' && !adminMode){
 
         let dbLinkChanged = await U.changeDbLink()
         if(!dbLinkChanged.error){
@@ -395,7 +392,7 @@ let U = new class{
 
     }
 
-    if(apiData.data) if(apiData.data.error) throw Error( JSON.stringify(query)+' has an error: '+JSON.stringify(apiData.data.error) )
+    if(apiData.data) if(apiData.data.error) throw Error( apiData.data.error)
     
     return apiData.data//to document the first arg is data and the other is meta
 
@@ -815,8 +812,7 @@ let U = new class{
 
             <console-logs></console-logs>
 
-              ${this.dbData? html`<database-section .dbData='${this.dbData}'> </database-section>`:html`<center><h1> ${this.showMessage}</h1></center>`}
-
+      
 
               </div>
 
@@ -2147,8 +2143,6 @@ let U = new class{
             return interest
       }
 
-
-      //
       function GetAllFieldValues(){
 
               let Obj = {}
@@ -2183,8 +2177,8 @@ let U = new class{
 
       }
 
-
-      return {kill:()=>{ U.removeDom(newPromptTag) }, dom:shadowDom}
+      U.currentPrompt = {kill:()=>{ U.removeDom(newPromptTag) }, dom:shadowDom}
+      return U.currentPrompt
 
   }getUserCookie(){
     if (localStorage.getItem('file-protocol-cookie') ){

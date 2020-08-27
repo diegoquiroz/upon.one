@@ -412,7 +412,7 @@ function handlePost(req, res, processedCookieData,appName,giveConnection){
 
       if (!qBody.meta) qBody.meta = null
 
-      if (qBody.searchable === undefined )qBody.searchable = true
+      if (qBody.searchable === undefined )qBody.searchable = false
       if ( typeof qBody.searchable !== 'boolean' ) qBody.searchable = false
 
 
