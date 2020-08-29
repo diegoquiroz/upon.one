@@ -28,12 +28,10 @@ Step4: On successful login, a message shall appear saying "Deploying", once it d
 
 
 
-# options
-
 | options  | Description |
 | --- | --- |
-| `host` | true | false //default is true|
-| `searchable` | true | false //default is false, if false app won't appear on UPON.ONE home page|
+| `host` |possible values: true or false //default is true|
+| `searchable` | possible values: true or false //default is false, if false app won't appear on UPON.ONE home page|
 
 
 # How to host multiple files like sub-pages or App's logo?

@@ -13,7 +13,7 @@ function handleQuery(type,par,via,parentRange,prop,handleParse){
 
             return new Promise(resolveOutput=>{
 
-              console.log(type,'sdvdv')
+            
 
               
               let appName = parentRange.appName

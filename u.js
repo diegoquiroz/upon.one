@@ -514,7 +514,7 @@ let U = new class{
               overflow: hidden;
               overflow-y:scroll;
               height: 99vh;
-              z-index:5;
+              z-index:10000000000000000000000000000000000000000000000000000;
               position: fixed;
           }
 
@@ -1234,6 +1234,8 @@ let U = new class{
 
     return new Promise(loginCompleted=>{
 
+      if(location.protocol == 'file:') return U.say('Login With Google is only available in incognito mode')
+
       let pleaseWait = U.say('please Wait')
       const clientId = '140572074409-ijht2s8v0ldnotak190gbqi4gh8ci72e.apps.googleusercontent.com'
       const redirectUri = U.getSubAppUrl('auth')
@@ -1472,7 +1474,7 @@ let U = new class{
         font-family: roboto, calibri;
         padding: 15px 0px;
         text-align: center;
-        z-index: 5;
+        z-index: 100000000000000000000000000000000000000000000000000000000000000000000000000;
         max-height: 75vh;
         border-radius: 20px;
         overflow: hidden;
@@ -1582,7 +1584,7 @@ let U = new class{
       document.querySelector('prompt-ui').parentNode.removeChild( document.querySelector('prompt-ui') )
     }
     
-
+    elements.push({button:{onclick:()=>{U.currentPrompt.kill()},innerHTML:'X' }})
 
       class promptUI extends HTMLElement{
 
@@ -1689,7 +1691,7 @@ let U = new class{
                 margin: 40px;
                 left: 0;
                 border-radius: 20px;
-                z-index: 3;
+                z-index: 10000000000000000000000;
 
                 top: 0;
                 left: 0;
