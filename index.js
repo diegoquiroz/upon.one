@@ -505,7 +505,6 @@ function getSchema(collectionSchema,collection){
       delete schemaObject[field].writable
       delete schemaObject[field].default
     }
-
   }
   
 
@@ -569,7 +568,13 @@ function giveConnection(appName,success,failure,forceNewConnection){
         if(database){
           for(let collection in database){
             if(!database[collection].schema) return sendCallback({error:'schema not found on '+collection})
+            try{
+
+            
             dbConnectionsOfApps[appName].collections[collection] = newConnectionInstance.model(collection, getSchema(database[collection].schema,collection));
+            }catch(e){
+              return sendCallback({error:e.message})
+            }
           }
         }
 

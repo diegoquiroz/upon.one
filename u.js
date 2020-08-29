@@ -1584,6 +1584,7 @@ let U = new class{
       document.querySelector('prompt-ui').parentNode.removeChild( document.querySelector('prompt-ui') )
     }
     
+    elements = JSON.parse( JSON.stringify(elements))
     elements.push({button:{onclick:()=>{U.currentPrompt.kill()},innerHTML:'X' }})
 
       class promptUI extends HTMLElement{

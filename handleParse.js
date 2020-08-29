@@ -73,7 +73,7 @@ function handleParse(passedProp,overwrite){
       db.law.findOne({app:prop.appName},function(err, info_main){
         
         if (err)  return prop.failure({error:err})
-        if (!info_main) return prop.failure({error: prop.appName+'database schema not found found: ' , code:1211 })
+        if (!info_main) return prop.failure({error: prop.appName+' database schema not found found: ' , code:1211 })
 
         prop.cloudFunctions = {}
         prop.database = {}
