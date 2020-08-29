@@ -1575,7 +1575,7 @@ let U = new class{
     }
 
     return string.charAt(0).toUpperCase() + string.slice(1);
-  }ask(elements){
+  }ask(elementsNotUnlined){
     
     //title with varying weight
     
@@ -1584,7 +1584,10 @@ let U = new class{
       document.querySelector('prompt-ui').parentNode.removeChild( document.querySelector('prompt-ui') )
     }
     
-    elements = JSON.parse( JSON.stringify(elements))
+    let elements = elementsNotUnlined.map(item=>{
+      return item
+    })
+
     elements.push({button:{onclick:()=>{U.currentPrompt.kill()},innerHTML:'X' }})
 
       class promptUI extends HTMLElement{
